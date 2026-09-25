@@ -86,10 +86,22 @@ router.post("/send-otp", async (req, res) => {
 
     const fmt = fmtPhone(phone.trim());
 
-    // ── MOCK mode: skip SMS, always return success ──
+    // ── MOCK mode: generate REAL random OTP, skip SMS, return it in response ──
+    // User requirement: mock me bhi OTP "aana chahiye" — fixed 123456 se
+    // app khul jana nahi chahiye. Isliye har bar random OTP banta hai,
+    // DB me hash store hota hai, aur response me mockOtp ke sath wapas
+    // aata hai taaki tester use dekh ke enter kare. Verify bhi DB se hota hai.
     if (MOCK_OTP_ENABLED) {
-      console.log(`[MOCK OTP] send-otp called for ${fmt} — mock code: ${MOCK_OTP_CODE}`);
-      return res.json({ success: true, message: `OTP sent (mock: use ${MOCK_OTP_CODE})`, mock: true, reqId: "mock-req-id" });
+      const otp = generateOtp();
+      const doc = await Otp.createForPhone(fmt, sha256(otp), OTP_TTL_MS);
+      console.log(`[MOCK OTP] ${fmt} -> ${otp} (reqId: ${doc._id})`);
+      return res.json({
+        success: true,
+        message: "OTP sent (mock mode — use the OTP in response/logs)",
+        mock: true,
+        mockOtp: otp,
+        reqId: String(doc._id),
+      });
     }
 
     if (!FAST2SMS_API_KEY) {
@@ -138,15 +150,9 @@ router.post("/verify-otp", async (req, res) => {
     const password = phoneToPassword(fmt);
     const userRole = role || "customer";
 
-    // ── Step 1: Verify OTP ──
-    if (MOCK_OTP_ENABLED) {
-      // MOCK: only accept the mock code
-      console.log(`[MOCK OTP] verify-otp: received ${otp}, expected ${MOCK_OTP_CODE}`);
-      if (String(otp) !== String(MOCK_OTP_CODE)) {
-        return res.status(400).json({ success: false, message: "Invalid OTP (mock mode)" });
-      }
-    } else {
-      // REAL: verify against the hashed OTP in MongoDB.
+    // ── Step 1: Verify OTP (mock bhi DB se verify hota hai — koi fixed bypass nahi) ──
+    {
+      // REAL + MOCK dono ke liye DB me hashed OTP se verify.
       const doc = await Otp.findOne({ phone: fmt });
       if (!doc) {
         return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
