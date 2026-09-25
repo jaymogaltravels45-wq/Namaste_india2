@@ -114,6 +114,18 @@ class _OtpScreenState extends State<OtpScreen> {
       }
     });
 
+    // Mock mode (testing): show the OTP that "arrived" so the tester can enter it.
+    final mockOtp = Msg91Service.lastMockOtp;
+    if (reqId != null && mockOtp != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Mock OTP (testing): $mockOtp'),
+          backgroundColor: Colors.orange.shade800,
+          duration: const Duration(seconds: 10),
+        ),
+      );
+    }
+
     if (reqId != null) _startCountdown();
   }
 

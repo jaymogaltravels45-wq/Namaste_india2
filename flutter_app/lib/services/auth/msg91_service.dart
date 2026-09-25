@@ -10,6 +10,12 @@ class Msg91Service {
 
   /// Sends OTP via the backend. Returns the reqId on success, null on failure.
   /// The reqId MUST be passed to [verifyOtp] — MSG91 verifies OTPs against it.
+  ///
+  /// When the backend runs in mock mode it returns the generated OTP in the
+  /// response; it is exposed here as [lastMockOtp] so test builds can display
+  /// it to the tester (never in production).
+  static String? lastMockOtp;
+
   static Future<String?> sendOtp(String phone) async {
     try {
       final res = await http.post(
@@ -19,10 +25,13 @@ class Msg91Service {
       );
       final body = jsonDecode(res.body) as Map<String, dynamic>;
       if (res.statusCode == 200 && body['success'] == true) {
+        lastMockOtp = body['mockOtp'] as String?;
         return body['reqId'] as String?;
       }
+      lastMockOtp = null;
       return null;
     } catch (_) {
+      lastMockOtp = null;
       return null;
     }
   }
