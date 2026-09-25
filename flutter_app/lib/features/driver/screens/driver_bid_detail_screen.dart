@@ -17,11 +17,21 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
   bool _busy = false;
   String? _error;
   Map<String, dynamic>? _booking;
+  final _bidCtrl = TextEditingController();
+  final _bidMsgCtrl = TextEditingController();
+  double? _myBidAmount;
 
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  @override
+  void dispose() {
+    _bidCtrl.dispose();
+    _bidMsgCtrl.dispose();
+    super.dispose();
   }
 
   Future<Map<String, String>> _headers() async {
@@ -115,6 +125,52 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
     );
   }
 
+  Future<void> _sendBid() async {
+    final amount = double.tryParse(_bidCtrl.text.trim()) ?? 0;
+    if (amount <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Sahi bid amount daalo"),
+        backgroundColor: AppTheme.error,
+      ));
+      return;
+    }
+    setState(() => _busy = true);
+    try {
+      final res = await http.post(
+        Uri.parse(
+            "${AppConfig.apiBaseUrl}/bookings/${widget.bookingId}/bids"),
+        headers: await _headers(),
+        body: jsonEncode(
+            {"amount": amount, "message": _bidMsgCtrl.text.trim()}),
+      );
+      if (!mounted) return;
+      setState(() => _busy = false);
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200 && body["success"] == true) {
+        setState(() => _myBidAmount = amount);
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text("Bid bhej di! Customer accept karega to notify hoga."),
+          backgroundColor: AppTheme.success,
+        ));
+      } else if (res.statusCode == 403) {
+        _showNegativeWalletDialog();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text(
+              (body["message"] ?? "Bid nahi bheji gayi").toString()),
+          backgroundColor: AppTheme.error,
+        ));
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text("Network error"),
+        backgroundColor: AppTheme.error,
+      ));
+    }
+  }
+
   void _reject() {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text("Request reject kar di")),
@@ -155,6 +211,7 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
 
   Widget _detail() {
     final b = _booking!;
+    final isBidOpen = (b["status"] ?? "").toString() == "open_for_bids";
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16),
       child: Column(crossAxisAlignment: CrossAxisAlignment.stretch, children: [
@@ -164,34 +221,131 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
         const SizedBox(height: 12),
         _fareCard(b),
         const SizedBox(height: 20),
-        Row(children: [
-          Expanded(
-              child: OutlinedButton(
-                  onPressed: _busy ? null : _reject,
-                  style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.error,
-                      side: const BorderSide(color: AppTheme.error),
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  child: const Text("Reject"))),
-          const SizedBox(width: 12),
-          Expanded(
-              child: ElevatedButton(
-                  onPressed: _busy ? null : _accept,
-                  style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.success,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14)),
-                  child: _busy
-                      ? const SizedBox(
-                          height: 18,
-                          width: 18,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.white))
-                      : const Text("Accept Booking"))),
-        ]),
+        if (isBidOpen) _bidCard(b) else _acceptRow(),
       ]),
     );
   }
+
+  Widget _bidCard(Map b) {
+    final customerBid = b["customerBid"] ?? b["estimatedFare"] ?? "—";
+    return Card(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(children: [
+              const Icon(Icons.gavel, color: Color(0xFF6A1B9A)),
+              const SizedBox(width: 8),
+              const Text("Bid Booking",
+                  style: TextStyle(
+                      fontWeight: FontWeight.bold, fontSize: 16)),
+              const Spacer(),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF6A1B9A).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text("Customer bid: Rs.$customerBid",
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w700,
+                        color: Color(0xFF6A1B9A),
+                        fontSize: 12)),
+              ),
+            ]),
+            if (_myBidAmount != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppTheme.success.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                    "Tumhari bid: Rs.${_myBidAmount!.toStringAsFixed(0)} — customer ke accept ka wait karo",
+                    style: const TextStyle(
+                        color: AppTheme.success,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13)),
+              ),
+            ],
+            const SizedBox(height: 12),
+            TextField(
+              controller: _bidCtrl,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: "Tumhara rate (₹)",
+                hintText: "e.g. 1400",
+                prefixIcon:
+                    Icon(Icons.currency_rupee, color: AppTheme.primary),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 10),
+            TextField(
+              controller: _bidMsgCtrl,
+              decoration: const InputDecoration(
+                labelText: "Message (optional)",
+                hintText: "e.g. Sedan, AC, experienced driver",
+                prefixIcon: Icon(Icons.message, color: AppTheme.primary),
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 14),
+            ElevatedButton.icon(
+              onPressed: _busy ? null : _sendBid,
+              icon: const Icon(Icons.send),
+              label: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 4),
+                child: _busy
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : Text(_myBidAmount == null ? "Bid Bhejo" : "Bid Update Karo",
+                        style: const TextStyle(fontSize: 16)),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF6A1B9A),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _acceptRow() => Row(children: [
+        Expanded(
+            child: OutlinedButton(
+                onPressed: _busy ? null : _reject,
+                style: OutlinedButton.styleFrom(
+                    foregroundColor: AppTheme.error,
+                    side: const BorderSide(color: AppTheme.error),
+                    padding: const EdgeInsets.symmetric(vertical: 14)),
+                child: const Text("Reject"))),
+        const SizedBox(width: 12),
+        Expanded(
+            child: ElevatedButton(
+                onPressed: _busy ? null : _accept,
+                style: ElevatedButton.styleFrom(
+                    backgroundColor: AppTheme.success,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14)),
+                child: _busy
+                    ? const SizedBox(
+                        height: 18,
+                        width: 18,
+                        child: CircularProgressIndicator(
+                            strokeWidth: 2, color: Colors.white))
+                    : const Text("Accept Booking"))),
+      ]);
 
   Widget _routeCard(Map b) => Card(
         shape:

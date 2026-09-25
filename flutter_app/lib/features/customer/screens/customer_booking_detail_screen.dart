@@ -178,8 +178,12 @@ class _CustomerBookingDetailScreenState
                     driver['vehicleNumber'].toString()),
             ]),
           ],
-          if (b['otp'] != null &&
-              (status == 'driver_assigned' || status == 'started')) ...[
+          if (status == 'open_for_bids') ...[
+            const SizedBox(height: 12),
+            _CustomerBidsSection(
+                bookingId: widget.bookingId, onAccepted: _load),
+          ],
+          if ((b['rideOtp'] ?? b['otp']) != null && status == 'arrived') ...[
             const SizedBox(height: 12),
             InkWell(
               onTap: () => context.go('/ride-otp/${widget.bookingId}'),
@@ -371,5 +375,198 @@ class _CustomerBookingDetailScreenState
       default:
         return 'Baaki hai';
     }
+  }
+}
+
+/// Driver bids on a customer's bid-booking, with accept option.
+class _CustomerBidsSection extends StatefulWidget {
+  final String bookingId;
+  final VoidCallback onAccepted;
+  const _CustomerBidsSection(
+      {required this.bookingId, required this.onAccepted});
+
+  @override
+  State<_CustomerBidsSection> createState() => _CustomerBidsSectionState();
+}
+
+class _CustomerBidsSectionState extends State<_CustomerBidsSection> {
+  List<dynamic> _bids = [];
+  bool _loading = true;
+  String? _acceptingId;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Map<String, String> _headers() {
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    return {
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<void> _load() async {
+    try {
+      final res = await http.get(
+        Uri.parse(
+            '${AppConfig.apiBaseUrl}/bookings/${widget.bookingId}/bids'),
+        headers: _headers(),
+      );
+      if (!mounted) return;
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200 && body['success'] == true) {
+        setState(() {
+          _bids = (body['bids'] as List?)?.where((b) =>
+              (b['status'] ?? 'pending') == 'pending').toList() ?? [];
+          _loading = false;
+        });
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _accept(String bidId) async {
+    setState(() => _acceptingId = bidId);
+    try {
+      final res = await http.post(
+        Uri.parse('${AppConfig.apiBaseUrl}/bids/$bidId/accept'),
+        headers: _headers(),
+      );
+      if (!mounted) return;
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200 && body['success'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Driver confirm ho gaya! 🎉'),
+          backgroundColor: AppTheme.success,
+        ));
+        widget.onAccepted();
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content:
+              Text((body['message'] ?? 'Accept nahi ho paya').toString()),
+          backgroundColor: AppTheme.error,
+        ));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Network error'),
+          backgroundColor: AppTheme.error,
+        ));
+      }
+    } finally {
+      if (mounted) setState(() => _acceptingId = null);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border:
+              Border.all(color: const Color(0xFF6A1B9A).withOpacity(0.3)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Row(children: [
+              Icon(Icons.gavel, color: Color(0xFF6A1B9A)),
+              SizedBox(width: 8),
+              Text('Driver Bids',
+                  style:
+                      TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            ]),
+            const SizedBox(height: 4),
+            const Text('Best offer choose karo — sabse sasta auto-select nahi hoga',
+                style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
+            const SizedBox(height: 12),
+            if (_loading)
+              const Center(child: CircularProgressIndicator())
+            else if (_bids.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 12),
+                child: Center(
+                    child: Text('Abhi koi bid nahi aayi — thodi der me check karo',
+                        style: TextStyle(
+                            color: AppTheme.textSecondary, fontSize: 13))),
+              )
+            else
+              ..._bids.map((b) => _bidTile(b)),
+          ],
+        ),
+      );
+
+  Widget _bidTile(dynamic b) {
+    final m = Map<String, dynamic>.from(b as Map);
+    final d = m['driver'];
+    final dm = d is Map ? Map<String, dynamic>.from(d) : null;
+    final id = m['_id'].toString();
+    final accepting = _acceptingId == id;
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F0FA),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        children: [
+          Row(children: [
+            const CircleAvatar(
+              backgroundColor: Color(0xFF6A1B9A),
+              child: Icon(Icons.person, color: Colors.white, size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(dm?['name']?.toString() ?? 'Driver',
+                      style: const TextStyle(fontWeight: FontWeight.w700)),
+                  Text(
+                      '${dm?['vehicleNumber']?.toString() ?? ''} · ${dm?['experience']?.toString() ?? ''} exp · ★${dm?['rating']?.toString() ?? '-'}',
+                      style: const TextStyle(
+                          fontSize: 11, color: AppTheme.textSecondary)),
+                  if ((m['message'] ?? '').toString().isNotEmpty)
+                    Text(m['message'].toString(),
+                        style: const TextStyle(fontSize: 12)),
+                ],
+              ),
+            ),
+            Text('₹${m['amount']}',
+                style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF6A1B9A))),
+          ]),
+          const SizedBox(height: 10),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: accepting ? null : () => _accept(id),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.success,
+                foregroundColor: Colors.white,
+              ),
+              child: accepting
+                  ? const SizedBox(
+                      height: 18,
+                      width: 18,
+                      child: CircularProgressIndicator(
+                          strokeWidth: 2, color: Colors.white))
+                  : const Text('Is Driver ko Select Karo'),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

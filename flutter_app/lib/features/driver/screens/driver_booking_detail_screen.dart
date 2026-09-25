@@ -26,6 +26,12 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _rideOtpCtrl.dispose();
+    super.dispose();
+  }
+
   Future<Map<String, String>> _headers() async {
     final token = Supabase.instance.client.auth.currentSession?.accessToken;
     return {
@@ -59,27 +65,33 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
     }
   }
 
-  Future<void> _tripAction(String action) async {
-    // action: "start" | "complete"
+  Future<void> _tripAction(String action, {String? otp}) async {
+    // action: "arrived" | "verify-start" | "start" | "complete"
     setState(() => _busy = true);
     try {
       final res = await http.post(
         Uri.parse("${AppConfig.apiBaseUrl}/bookings/${widget.bookingId}/$action"),
         headers: await _headers(),
+        body: otp != null ? jsonEncode({"otp": otp}) : null,
       );
       if (!mounted) return;
       setState(() => _busy = false);
-      if (res.statusCode == 200) {
+      final body = jsonDecode(res.body);
+      if (res.statusCode == 200 && (body["success"] ?? false)) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text(action == "start"
-              ? "Trip shuru! Safe drive."
-              : "Trip complete! Payment lo."),
+          content: Text(switch (action) {
+            "arrived" => "Customer ko inform karo — OTP lekar aao!",
+            "verify-start" => "Trip shuru! Safe drive.",
+            _ => "Trip complete! Payment lo.",
+          }),
           backgroundColor: AppTheme.success,
         ));
         _load();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text("Action fail (code ${res.statusCode})"),
+          content: Text(
+              (body["message"] ?? "Action fail (code ${res.statusCode})")
+                  .toString()),
           backgroundColor: AppTheme.error,
         ));
       }
@@ -142,8 +154,8 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
         const SizedBox(height: 12),
         _customerCard(b),
         const SizedBox(height: 12),
-        _otpCard(b),
-        const SizedBox(height: 12),
+        if (status == "arrived") _rideOtpEntryCard(),
+        if (status == "arrived") const SizedBox(height: 12),
         _fareCard(b),
         const SizedBox(height: 20),
         _actionButton(status),
@@ -151,14 +163,72 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
     );
   }
 
+  final _rideOtpCtrl = TextEditingController();
+
+  Widget _rideOtpEntryCard() => Card(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        color: const Color(0xFFFFF8E1),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.lock_open,
+                        color: AppTheme.warning, size: 18),
+                    SizedBox(width: 6),
+                    Text("Ride Start OTP",
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.warning)),
+                  ]),
+              const SizedBox(height: 6),
+              const Text(
+                  "Customer se 4-digit OTP lekar neeche daalo",
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                      fontSize: 12, color: AppTheme.textSecondary)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: _rideOtpCtrl,
+                keyboardType: TextInputType.number,
+                maxLength: 4,
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 8),
+                decoration: const InputDecoration(
+                  hintText: "••••",
+                  counterText: "",
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+
   Widget _statusBanner(String status) {
     Color c;
     String label;
     switch (status) {
+      case "confirmed":
+        c = AppTheme.primary;
+        label = "Confirmed — pickup point par pahuncho";
+        break;
       case "driver_assigned":
         c = AppTheme.primary;
         label = "Assigned — customer ka wait karo";
         break;
+      case "arrived":
+        c = AppTheme.warning;
+        label = "Pahunch gaye — customer se OTP lo";
+        break;
+      case "ongoing":
       case "started":
         c = AppTheme.warning;
         label = "Trip chal rahi hai";
@@ -287,43 +357,6 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
     );
   }
 
-  Widget _otpCard(Map b) {
-    final otp = (b["otp"] ?? "").toString();
-    if (otp.isEmpty) return const SizedBox.shrink();
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-      color: const Color(0xFFFFF8E1),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          const Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.lock_open, color: AppTheme.warning, size: 18),
-                SizedBox(width: 6),
-                Text("Ride OTP",
-                    style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.warning)),
-              ]),
-          const SizedBox(height: 8),
-          Text(
-            otp.split("").join(" "),
-            style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                letterSpacing: 4,
-                color: AppTheme.textPrimary),
-          ),
-          const SizedBox(height: 6),
-          const Text("Customer se ye OTP lekar trip start karo",
-              style:
-                  TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
-        ]),
-      ),
-    );
-  }
-
   Widget _fareCard(Map b) {
     final fare = b["finalFare"] ?? b["estimatedFare"] ?? "—";
     final method = (b["paymentMethod"] ?? "cash").toString().toUpperCase();
@@ -381,10 +414,48 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
       );
     }
     if (status == "cancelled") return const SizedBox.shrink();
-    final isStart = status == "pending" || status == "driver_assigned";
+
+    String label;
+    IconData icon;
+    Color color;
+    String action;
+    if (status == "confirmed" || status == "driver_assigned" ||
+        status == "pending") {
+      label = "Pahunch Gaya (Arrived)";
+      icon = Icons.location_on;
+      color = AppTheme.warning;
+      action = "arrived";
+    } else if (status == "arrived") {
+      label = "OTP Verify & Start Trip";
+      icon = Icons.play_arrow;
+      color = AppTheme.primary;
+      action = "verify-start";
+    } else {
+      // ongoing / started
+      label = "Complete Trip";
+      icon = Icons.flag;
+      color = AppTheme.success;
+      action = "complete";
+    }
     return ElevatedButton.icon(
-      onPressed: _busy ? null : () => _tripAction(isStart ? "start" : "complete"),
-      icon: Icon(isStart ? Icons.play_arrow : Icons.flag),
+      onPressed: _busy
+          ? null
+          : () {
+              if (action == "verify-start") {
+                final otp = _rideOtpCtrl.text.trim();
+                if (otp.length != 4) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text("4-digit OTP daalo"),
+                          backgroundColor: AppTheme.error));
+                  return;
+                }
+                _tripAction(action, otp: otp);
+              } else {
+                _tripAction(action);
+              }
+            },
+      icon: Icon(icon),
       label: Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: _busy
@@ -393,12 +464,10 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
                 width: 18,
                 child: CircularProgressIndicator(
                     strokeWidth: 2, color: Colors.white))
-            : Text(isStart ? "Start Trip" : "Complete Trip",
-                style: const TextStyle(fontSize: 16)),
+            : Text(label, style: const TextStyle(fontSize: 16)),
       ),
       style: ElevatedButton.styleFrom(
-        backgroundColor:
-            isStart ? AppTheme.primary : AppTheme.success,
+        backgroundColor: color,
         foregroundColor: Colors.white,
         padding: const EdgeInsets.symmetric(vertical: 12),
       ),

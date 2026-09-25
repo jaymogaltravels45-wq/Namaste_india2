@@ -136,7 +136,7 @@ class _RideOtpScreenState extends State<RideOtpScreen> {
 
   Widget _otpView() {
     final b = _booking!;
-    final otp = b['otp']?.toString() ?? '------';
+    final otp = (b['rideOtp'] ?? b['otp'])?.toString() ?? '------';
     final status = b['status']?.toString() ?? 'pending';
     final driverRaw = b['driverId'];
     final Map<String, dynamic>? driver =
