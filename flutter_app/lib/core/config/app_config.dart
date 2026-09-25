@@ -21,12 +21,12 @@ class AppConfig {
       supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty;
 
   // ─── Backend API ───────────────────────────────────────────────────────────
-  // TODO: Jab backend deploy karo (Render/Railway) to ye URL update karo.
-  // Real phone pe test karne ke liye: https://your-backend.onrender.com/api
-  static const apiBaseUrl = "https://your-backend.onrender.com/api";
+  // Render backend (live): https://namaste-india-backend.onrender.com
+  static const apiBaseUrl = "https://namaste-india-backend.onrender.com/api";
 
   // ─── Mock OTP (sirf testing) ───────────────────────────────────────────────
-  // Backend mein MOCK_OTP=true karo, toh har phone pe OTP = 123456 kaam karega.
-  // WARNING: kabhi production build mein mock OTP backend ke saath use mat karo.
-  static const mockOtpCode = "123456";
+  // Backend me MOCK_OTP=true hai to har bar RANDOM OTP banta hai jo response
+  // me mockOtp field me aata hai (koi fixed 123456 bypass nahi hai).
+  // App send-otp ke baad use orange snackbar me dikhati hai.
+  // WARNING: production me hamesha real SMS wala backend use karo.
 }
