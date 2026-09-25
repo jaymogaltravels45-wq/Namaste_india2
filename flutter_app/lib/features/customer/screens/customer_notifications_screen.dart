@@ -4,9 +4,9 @@ import "package:go_router/go_router.dart";
 import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
-import "../../../core/widgets/neumorphic.dart";
+import "../../../core/theme/app_theme.dart";
 
-/// P14 — Notifications (customer). Bookings se asli notifications banti hain.
+/// P14 (Travel edition) — Notifications. Built from the customer's bookings.
 class CustomerNotificationsScreen extends StatefulWidget {
   const CustomerNotificationsScreen({super.key});
   @override
@@ -14,14 +14,14 @@ class CustomerNotificationsScreen extends StatefulWidget {
       _CustomerNotificationsScreenState();
 }
 
-class _Item {
+class _NItem {
   final IconData icon;
   final Color color;
   final String title;
   final String subtitle;
   final String time;
   final String? bookingId;
-  _Item(
+  _NItem(
       {required this.icon,
       required this.color,
       required this.title,
@@ -33,7 +33,7 @@ class _Item {
 class _CustomerNotificationsScreenState
     extends State<CustomerNotificationsScreen> {
   bool _loading = true;
-  List<_Item> _items = [];
+  List<_NItem> _items = [];
 
   @override
   void initState() {
@@ -54,10 +54,10 @@ class _CustomerNotificationsScreenState
     try {
       final dt = DateTime.parse(iso).toLocal();
       final d = DateTime.now().difference(dt);
-      if (d.inMinutes < 1) return 'abhi';
-      if (d.inMinutes < 60) return '${d.inMinutes} min pehle';
-      if (d.inHours < 24) return '${d.inHours} ghante pehle';
-      return '${d.inDays} din pehle';
+      if (d.inMinutes < 1) return 'now';
+      if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+      if (d.inHours < 24) return '${d.inHours}h ago';
+      return '${d.inDays}d ago';
     } catch (_) {
       return '';
     }
@@ -65,7 +65,7 @@ class _CustomerNotificationsScreenState
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final items = <_Item>[];
+    final items = <_NItem>[];
     try {
       final res = await http.get(
         Uri.parse("${AppConfig.apiBaseUrl}/bookings/customer/my"),
@@ -84,104 +84,121 @@ class _CustomerNotificationsScreenState
           final ts = (b["updatedAt"] ?? b["createdAt"])?.toString();
           switch (status) {
             case 'driver_assigned':
-              items.add(_Item(
-                icon: Icons.drive_eta_rounded,
-                color: NeuColors.success,
-                title: 'Driver mil gaya!',
-                subtitle: '$route — driver aa raha hai',
-                time: _ago(ts),
-                bookingId: id,
-              ));
+              items.add(_NItem(
+                  icon: Icons.drive_eta_rounded,
+                  color: AppTheme.success,
+                  title: 'Driver assigned',
+                  subtitle: route,
+                  time: _ago(ts),
+                  bookingId: id));
               break;
             case 'arrived':
-              items.add(_Item(
-                icon: Icons.location_on_rounded,
-                color: NeuColors.accent,
-                title: 'Driver pahunch gaya',
-                subtitle: '$route — ride OTP driver ko batao',
-                time: _ago(ts),
-                bookingId: id,
-              ));
+              items.add(_NItem(
+                  icon: Icons.location_on_rounded,
+                  color: AppTheme.goldDeep,
+                  title: 'Driver arrived',
+                  subtitle: 'Share the ride OTP to start',
+                  time: _ago(ts),
+                  bookingId: id));
               break;
             case 'ongoing':
             case 'started':
-              items.add(_Item(
-                icon: Icons.navigation_rounded,
-                color: NeuColors.accent,
-                title: 'Trip chal rahi hai',
-                subtitle: route,
-                time: _ago(ts),
-                bookingId: id,
-              ));
+              items.add(_NItem(
+                  icon: Icons.navigation_rounded,
+                  color: AppTheme.primary,
+                  title: 'Trip in progress',
+                  subtitle: route,
+                  time: _ago(ts),
+                  bookingId: id));
               break;
             case 'open_for_bids':
-              items.add(_Item(
-                icon: Icons.gavel_rounded,
-                color: NeuColors.accent,
-                title: 'Nayi driver offers aayi hain',
-                subtitle: '$route — compare karke chuno',
-                time: _ago(ts),
-                bookingId: id,
-              ));
+              items.add(_NItem(
+                  icon: Icons.gavel_rounded,
+                  color: AppTheme.goldDeep,
+                  title: 'New driver offers',
+                  subtitle: route,
+                  time: _ago(ts),
+                  bookingId: id));
               break;
             case 'completed':
-              items.add(_Item(
-                icon: Icons.star_rounded,
-                color: NeuColors.accent,
-                title: 'Trip poori hui',
-                subtitle: '$route — rating dena na bhoolo',
-                time: _ago(ts),
-                bookingId: id,
-              ));
+              items.add(_NItem(
+                  icon: Icons.star_rounded,
+                  color: AppTheme.goldDeep,
+                  title: 'Trip completed',
+                  subtitle: 'Rate your ride',
+                  time: _ago(ts),
+                  bookingId: id));
               break;
             case 'pending':
-              items.add(_Item(
-                icon: Icons.hourglass_empty_rounded,
-                color: NeuColors.textMuted,
-                title: 'Driver ka intezaar',
-                subtitle: '$route — jaldi driver milega',
-                time: _ago(ts),
-                bookingId: id,
-              ));
+              items.add(_NItem(
+                  icon: Icons.hourglass_empty_rounded,
+                  color: AppTheme.textSecondary,
+                  title: 'Finding your driver',
+                  subtitle: route,
+                  time: _ago(ts),
+                  bookingId: id));
               break;
             case 'cancelled':
-              items.add(_Item(
-                icon: Icons.cancel_rounded,
-                color: NeuColors.error,
-                title: 'Booking cancel hui',
-                subtitle: route,
-                time: _ago(ts),
-                bookingId: null,
-              ));
+              items.add(_NItem(
+                  icon: Icons.cancel_outlined,
+                  color: AppTheme.error,
+                  title: 'Booking cancelled',
+                  subtitle: route,
+                  time: _ago(ts)));
               break;
           }
         }
       }
     } catch (_) {}
-    if (mounted) {
-      setState(() {
-        _items = items;
-        _loading = false;
-      });
-    }
+    if (mounted) setState(() {
+      _items = items;
+      _loading = false;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NeuColors.bg,
-      body: SafeArea(
+      backgroundColor: AppTheme.background,
+      body: Column(
+        children: [
+          _header(context),
+          Expanded(child: _body()),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.navy, AppTheme.primaryDeep],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.fromLTRB(8, 8, 20, 20),
+          child: Row(
             children: [
-              const NeuHeader(
-                title: 'Notifications',
-                subtitle: 'Tumhari trips ki taaza khabar',
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.white),
+                onPressed: () => context.pop(),
               ),
-              const SizedBox(height: 18),
-              Expanded(child: _body()),
+              const Expanded(
+                child: Text('Notifications',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800)),
+              ),
+              const Icon(Icons.notifications_outlined,
+                  color: Colors.white70, size: 22),
             ],
           ),
         ),
@@ -202,22 +219,23 @@ class _CustomerNotificationsScreenState
               width: 84,
               height: 84,
               decoration: BoxDecoration(
-                color: NeuColors.card,
+                color: AppTheme.surface,
                 shape: BoxShape.circle,
-                boxShadow: NeuShadows.raised(),
+                boxShadow: AppTheme.shadowSm,
               ),
               child: const Icon(Icons.notifications_none_rounded,
-                  size: 36, color: NeuColors.textMuted),
+                  size: 36, color: AppTheme.textTertiary),
             ),
             const SizedBox(height: 16),
-            const Text('Abhi koi notification nahi',
+            const Text('No notifications yet',
                 style: TextStyle(
-                    color: NeuColors.textDark,
                     fontWeight: FontWeight.w800,
-                    fontSize: 16)),
+                    fontSize: 16,
+                    color: AppTheme.textPrimary)),
             const SizedBox(height: 6),
-            const Text('Booking karoge to yahin khabar aayegi.',
-                style: TextStyle(color: NeuColors.textMuted, fontSize: 13)),
+            const Text('Trip updates will appear here.',
+                style: TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 13)),
           ],
         ),
       );
@@ -225,57 +243,70 @@ class _CustomerNotificationsScreenState
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
         itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (_, i) {
           final n = _items[i];
-          return NeuCard(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          return GestureDetector(
             onTap: n.bookingId == null
                 ? null
                 : () => context.go('/customer/booking/${n.bookingId}'),
-            child: Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: n.color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppTheme.shadowSm,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: n.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(n.icon, color: n.color, size: 21),
                   ),
-                  child: Icon(n.icon, color: n.color, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(n.title,
-                          style: const TextStyle(
-                              color: NeuColors.textDark,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14)),
-                      const SizedBox(height: 2),
-                      Text(n.subtitle,
-                          style: const TextStyle(
-                              color: NeuColors.textMuted, fontSize: 12.5)),
-                      if (n.time.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(n.time,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(n.title,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: AppTheme.textPrimary)),
+                            ),
+                            if (n.time.isNotEmpty)
+                              Text(n.time,
+                                  style: const TextStyle(
+                                      color: AppTheme.textTertiary,
+                                      fontSize: 11)),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(n.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                color: NeuColors.textMuted,
-                                fontSize: 11,
-                                fontStyle: FontStyle.italic)),
+                                color: AppTheme.textSecondary,
+                                fontSize: 12.5)),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                if (n.bookingId != null)
-                  const Icon(Icons.chevron_right_rounded,
-                      color: NeuColors.textMuted),
-              ],
+                  if (n.bookingId != null)
+                    const Icon(Icons.chevron_right_rounded,
+                        color: AppTheme.textTertiary),
+                ],
+              ),
             ),
           );
         },

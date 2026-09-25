@@ -3,9 +3,9 @@ import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "package:http/http.dart" as http;
 import "../../../core/config/app_config.dart";
-import "../../../core/widgets/neumorphic.dart";
+import "../../../core/theme/app_theme.dart";
 
-/// P23 — Available Cars & Drivers. Online verified drivers, server se.
+/// P23 (Travel edition) — Available Cars. Online verified drivers, live rates.
 class AvailableCarsScreen extends StatefulWidget {
   const AvailableCarsScreen({super.key});
   @override
@@ -22,22 +22,14 @@ class _AvailableCarsScreenState extends State<AvailableCarsScreen> {
 
   static const _filters = ['all', 'hatchback', 'sedan', 'suv', 'innova'];
 
-  String _label(String v) {
-    switch (v) {
-      case 'all':
-        return 'All';
-      case 'hatchback':
-        return 'Hatchback';
-      case 'sedan':
-        return 'Sedan';
-      case 'suv':
-        return 'SUV';
-      case 'innova':
-        return 'Innova';
-      default:
-        return v;
-    }
-  }
+  String _label(String v) => switch (v) {
+        'all' => 'All',
+        'hatchback' => 'Hatchback',
+        'sedan' => 'Sedan',
+        'suv' => 'SUV',
+        'innova' => 'Innova',
+        _ => v,
+      };
 
   @override
   void initState() {
@@ -95,10 +87,9 @@ class _AvailableCarsScreenState extends State<AvailableCarsScreen> {
         return false;
       }
       if (_query.isNotEmpty) {
-        final q = _query.toLowerCase();
         final hay =
             "${d["name"]} ${d["vehicleModel"]} ${d["vehicleType"]}".toLowerCase();
-        if (!hay.contains(q)) return false;
+        if (!hay.contains(_query)) return false;
       }
       return true;
     }).toList();
@@ -107,71 +98,127 @@ class _AvailableCarsScreenState extends State<AvailableCarsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NeuColors.bg,
-      body: SafeArea(
+      backgroundColor: AppTheme.background,
+      body: Column(
+        children: [
+          _header(context),
+          _searchBar(),
+          _filterChips(),
+          Expanded(child: _body()),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.navy, AppTheme.primaryDeep],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.fromLTRB(8, 8, 20, 20),
+          child: Row(
             children: [
-              const NeuHeader(
-                title: 'Available Cars',
-                subtitle: 'Abhi online drivers',
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.white),
+                onPressed: () => context.pop(),
               ),
-              const SizedBox(height: 16),
-              NeuTextField(
-                controller: _searchCtrl,
-                hint: 'Search cars or drivers…',
-                icon: Icons.search_rounded,
-                onChanged: (v) =>
-                    setState(() => _query = v.trim().toLowerCase()),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: 40,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _filters.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 10),
-                  itemBuilder: (_, i) {
-                    final f = _filters[i];
-                    final sel = _filter == f;
-                    return GestureDetector(
-                      onTap: () => setState(() => _filter = f),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 18, vertical: 10),
-                        decoration: BoxDecoration(
-                          gradient:
-                              sel ? NeuColors.accentGradient : null,
-                          color: sel ? null : NeuColors.card,
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: sel
-                              ? NeuShadows.accentButton()
-                              : NeuShadows.raised(blur: 10, offset: 4),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _label(f),
-                            style: TextStyle(
-                              color: sel
-                                  ? Colors.white
-                                  : NeuColors.textMuted,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
-                      ),
-                    );
-                  },
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('Available Cars',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w800)),
+                    Text(
+                      _loading
+                          ? 'Finding drivers…'
+                          : '${_drivers.length} online now',
+                      style: const TextStyle(
+                          color: Colors.white70, fontSize: 12.5),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 16),
-              Expanded(child: _body()),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _searchBar() {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: AppTheme.shadowSm,
+        ),
+        child: TextField(
+          controller: _searchCtrl,
+          onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
+          style: const TextStyle(fontSize: 14, color: AppTheme.textPrimary),
+          decoration: const InputDecoration(
+            hintText: 'Search cars or drivers',
+            hintStyle:
+                TextStyle(color: AppTheme.textTertiary, fontSize: 13.5),
+            prefixIcon: Icon(Icons.search_rounded,
+                color: AppTheme.textTertiary, size: 20),
+            border: InputBorder.none,
+            enabledBorder: InputBorder.none,
+            focusedBorder: InputBorder.none,
+            contentPadding:
+                EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _filterChips() {
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        itemCount: _filters.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (_, i) {
+          final f = _filters[i];
+          final sel = _filter == f;
+          return GestureDetector(
+            onTap: () => setState(() => _filter = f),
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+              decoration: BoxDecoration(
+                gradient: sel ? AppTheme.goldGradient : null,
+                color: sel ? null : AppTheme.surface,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: AppTheme.shadowSm,
+              ),
+              child: Center(
+                child: Text(_label(f),
+                    style: TextStyle(
+                        color: sel ? Colors.white : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5)),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -190,27 +237,38 @@ class _AvailableCarsScreenState extends State<AvailableCarsScreen> {
               width: 84,
               height: 84,
               decoration: BoxDecoration(
-                color: NeuColors.card,
+                color: AppTheme.surface,
                 shape: BoxShape.circle,
-                boxShadow: NeuShadows.raised(),
+                boxShadow: AppTheme.shadowSm,
               ),
               child: const Icon(Icons.drive_eta_rounded,
-                  size: 36, color: NeuColors.textMuted),
+                  size: 36, color: AppTheme.textTertiary),
             ),
             const SizedBox(height: 16),
-            const Text('Abhi koi driver online nahi',
+            const Text('No drivers online',
                 style: TextStyle(
-                    color: NeuColors.textDark,
                     fontWeight: FontWeight.w800,
-                    fontSize: 16)),
+                    fontSize: 16,
+                    color: AppTheme.textPrimary)),
             const SizedBox(height: 6),
-            const Text('Thodi der baad dobara dekho.',
-                style: TextStyle(color: NeuColors.textMuted, fontSize: 13)),
-            const SizedBox(height: 16),
+            const Text('Try again in a bit.',
+                style: TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 13)),
+            const SizedBox(height: 18),
             SizedBox(
-              width: 200,
-              child: NeuButton(
-                  label: 'Refresh', onPressed: _load),
+              width: 170,
+              child: ElevatedButton(
+                onPressed: _load,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.gold,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                ),
+                child: const Text('Refresh',
+                    style: TextStyle(fontWeight: FontWeight.w800)),
+              ),
             ),
           ],
         ),
@@ -219,9 +277,9 @@ class _AvailableCarsScreenState extends State<AvailableCarsScreen> {
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
-        padding: const EdgeInsets.only(bottom: 24),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
         itemCount: list.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 14),
+        separatorBuilder: (_, __) => const SizedBox(height: 12),
         itemBuilder: (_, i) => _carCard(list[i]),
       ),
     );
@@ -234,105 +292,80 @@ class _AvailableCarsScreenState extends State<AvailableCarsScreen> {
     final rating = (d["rating"] ?? 0).toString();
     final trips = d["totalTrips"] ?? 0;
     final rate = _perKm[vt];
-    final title = model.isNotEmpty ? model : _label(vt);
-    return NeuCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: AppTheme.shadowSm,
+      ),
+      child: Row(
         children: [
-          // Gaadi visual
-          NeuInset(
-            radius: 16,
-            padding: const EdgeInsets.symmetric(vertical: 18),
-            child: Center(
-              child: Icon(Icons.directions_car_rounded,
-                  size: 64, color: NeuColors.textDark.withValues(alpha: 0.75)),
+          Container(
+            width: 64,
+            height: 64,
+            decoration: BoxDecoration(
+              color: AppTheme.surfaceTint,
+              borderRadius: BorderRadius.circular(16),
             ),
+            child: const Icon(Icons.directions_car_rounded,
+                size: 32, color: AppTheme.primaryDeep),
           ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(model.isNotEmpty ? model : _label(vt),
+                    style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 15,
+                        color: AppTheme.textPrimary)),
+                const SizedBox(height: 3),
+                Text('${_label(vt)} • $name',
+                    style: const TextStyle(
+                        color: AppTheme.textSecondary, fontSize: 12)),
+                const SizedBox(height: 5),
+                Row(
                   children: [
-                    Text(title,
+                    const Icon(Icons.star_rounded,
+                        size: 14, color: AppTheme.goldDeep),
+                    const SizedBox(width: 3),
+                    Text(rating,
                         style: const TextStyle(
-                            color: NeuColors.textDark,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 16)),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${_label(vt)} • $name',
-                      style: const TextStyle(
-                          color: NeuColors.textMuted, fontSize: 12.5),
-                    ),
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.star_rounded,
-                            size: 15, color: NeuColors.accent),
-                        const SizedBox(width: 3),
-                        Text(rating,
-                            style: const TextStyle(
-                                color: NeuColors.textDark,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12.5)),
-                        const SizedBox(width: 8),
-                        Text('• $trips trips',
-                            style: const TextStyle(
-                                color: NeuColors.textMuted, fontSize: 12)),
-                      ],
-                    ),
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                            color: AppTheme.textPrimary)),
+                    Text(' • $trips trips',
+                        style: const TextStyle(
+                            color: AppTheme.textTertiary, fontSize: 11.5)),
+                    if (rate != null)
+                      Text(' • ₹$rate/km',
+                          style: const TextStyle(
+                              color: AppTheme.textSecondary,
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600)),
                   ],
                 ),
-              ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: NeuColors.success.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 8,
-                          height: 8,
-                          decoration: const BoxDecoration(
-                            color: NeuColors.success,
-                            shape: BoxShape.circle,
-                          ),
-                        ),
-                        const SizedBox(width: 5),
-                        const Text('Online',
-                            style: TextStyle(
-                                color: NeuColors.success,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 11.5)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  if (rate != null)
-                    Text('₹$rate/km',
-                        style: const TextStyle(
-                            color: NeuColors.textDark,
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15)),
-                ],
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          NeuButton(
-            label: 'Hire',
-            icon: Icons.arrow_forward_rounded,
+          const SizedBox(width: 8),
+          ElevatedButton(
             onPressed: () => context.go('/customer/booking',
                 extra: {'type': 'outstation', 'vehicleType': vt}),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.gold,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12)),
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 16, vertical: 11),
+              elevation: 0,
+            ),
+            child: const Text('Select',
+                style: TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 13)),
           ),
         ],
       ),

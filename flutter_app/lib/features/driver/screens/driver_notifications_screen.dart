@@ -4,9 +4,9 @@ import "package:go_router/go_router.dart";
 import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
-import "../../../core/widgets/neumorphic.dart";
+import "../../../core/theme/app_theme.dart";
 
-/// P27 — Notifications (driver). Bookings, bids aur subscription se banti hain.
+/// P27 (Travel edition) — Driver notifications with All / Bids / Payouts tabs.
 class DriverNotificationsScreen extends StatefulWidget {
   const DriverNotificationsScreen({super.key});
   @override
@@ -14,16 +14,18 @@ class DriverNotificationsScreen extends StatefulWidget {
       _DriverNotificationsScreenState();
 }
 
-class _Item {
+class _NItem {
   final IconData icon;
   final Color color;
+  final String kind; // bid | payout | info
   final String title;
   final String subtitle;
   final String time;
   final String? route;
-  _Item(
+  _NItem(
       {required this.icon,
       required this.color,
+      required this.kind,
       required this.title,
       required this.subtitle,
       required this.time,
@@ -33,7 +35,8 @@ class _Item {
 class _DriverNotificationsScreenState
     extends State<DriverNotificationsScreen> {
   bool _loading = true;
-  List<_Item> _items = [];
+  List<_NItem> _items = [];
+  String _tab = 'all';
 
   @override
   void initState() {
@@ -54,10 +57,10 @@ class _DriverNotificationsScreenState
     try {
       final dt = DateTime.parse(iso).toLocal();
       final d = DateTime.now().difference(dt);
-      if (d.inMinutes < 1) return 'abhi';
-      if (d.inMinutes < 60) return '${d.inMinutes} min pehle';
-      if (d.inHours < 24) return '${d.inHours} ghante pehle';
-      return '${d.inDays} din pehle';
+      if (d.inMinutes < 1) return 'now';
+      if (d.inMinutes < 60) return '${d.inMinutes}m ago';
+      if (d.inHours < 24) return '${d.inHours}h ago';
+      return '${d.inDays}d ago';
     } catch (_) {
       return '';
     }
@@ -65,7 +68,7 @@ class _DriverNotificationsScreenState
 
   Future<void> _load() async {
     setState(() => _loading = true);
-    final items = <_Item>[];
+    final items = <_NItem>[];
     try {
       final h = await _headers();
       final base = AppConfig.apiBaseUrl;
@@ -77,128 +80,185 @@ class _DriverNotificationsScreenState
       ]);
       if (!mounted) return;
 
-      // Nayi booking requests
       if (results[0].statusCode == 200) {
         final a = jsonDecode(results[0].body) as Map<String, dynamic>;
-        final raw = (a["bookings"] as List?) ?? [];
-        for (final e in raw.take(5)) {
+        for (final e in ((a["bookings"] as List?) ?? []).take(5)) {
           final b = Map<String, dynamic>.from(e as Map);
-          final from =
-              (b["pickup"] is Map ? b["pickup"]["address"] : '') ?? '';
+          final from = (b["pickup"] is Map ? b["pickup"]["address"] : '') ?? '';
           final to = (b["drop"] is Map ? b["drop"]["address"] : '') ?? '';
           final fare = b["estimatedFare"] ?? b["finalFare"] ?? '';
-          items.add(_Item(
-            icon: Icons.gavel_rounded,
-            color: NeuColors.accent,
-            title: 'Nayi bid request paas me',
-            subtitle: '$from → $to • ₹$fare',
-            time: _ago((b["createdAt"])?.toString()),
-            route: '/driver',
-          ));
+          items.add(_NItem(
+              icon: Icons.gavel_rounded,
+              color: AppTheme.goldDeep,
+              kind: 'bid',
+              title: 'New bid request',
+              subtitle: '$from → $to • ₹$fare',
+              time: _ago(b["createdAt"]?.toString()),
+              route: '/driver'));
         }
       }
 
-      // Meri bookings ki halchal
       if (results[1].statusCode == 200) {
         final m = jsonDecode(results[1].body) as Map<String, dynamic>;
-        final raw = (m["bookings"] as List?) ?? [];
-        for (final e in raw.take(5)) {
+        for (final e in ((m["bookings"] as List?) ?? []).take(5)) {
           final b = Map<String, dynamic>.from(e as Map);
           final status = b["status"]?.toString() ?? '';
           final id = b["_id"]?.toString();
           final ts = (b["updatedAt"] ?? b["createdAt"])?.toString();
           if (status == 'driver_assigned') {
-            items.add(_Item(
-              icon: Icons.check_circle_rounded,
-              color: NeuColors.success,
-              title: 'Booking tumhari hui',
-              subtitle: 'Customer tak pahuncho aur "Arrived" dabao',
-              time: _ago(ts),
-              route: id == null ? null : '/driver/my-booking/$id',
-            ));
+            items.add(_NItem(
+                icon: Icons.check_circle_rounded,
+                color: AppTheme.success,
+                kind: 'bid',
+                title: 'Booking confirmed',
+                subtitle: 'Reach the pickup point',
+                time: _ago(ts),
+                route: id == null ? null : '/driver/my-booking/$id'));
           } else if (status == 'completed') {
             final fare = b["finalFare"] ?? b["estimatedFare"] ?? '';
-            items.add(_Item(
-              icon: Icons.payments_rounded,
-              color: NeuColors.success,
-              title: 'Trip poori — payment aaya',
-              subtitle: '₹$fare wallet me jod diya gaya',
-              time: _ago(ts),
-              route: '/driver/earnings',
-            ));
+            items.add(_NItem(
+                icon: Icons.payments_rounded,
+                color: AppTheme.success,
+                kind: 'payout',
+                title: 'Trip complete • ₹$fare',
+                subtitle: 'Added to wallet',
+                time: _ago(ts),
+                route: '/driver/earnings'));
           }
         }
       }
 
-      // Subscription khatam hone wala
       if (results[2].statusCode == 200) {
         final s = jsonDecode(results[2].body) as Map<String, dynamic>;
         if (s["active"] == true && s["endsAt"] != null) {
           try {
-            final ends =
-                DateTime.parse(s["endsAt"].toString()).toLocal();
+            final ends = DateTime.parse(s["endsAt"].toString()).toLocal();
             final days = ends.difference(DateTime.now()).inDays;
             if (days <= 3) {
-              items.add(_Item(
-                icon: Icons.workspace_premium_rounded,
-                color: NeuColors.accent,
-                title: 'Premium $days din me khatam',
-                subtitle: '0% commission jaari rakhne ke liye renew karo',
-                time: '',
-                route: '/driver/subscription',
-              ));
+              items.add(_NItem(
+                  icon: Icons.workspace_premium_rounded,
+                  color: AppTheme.goldDeep,
+                  kind: 'info',
+                  title: 'Premium ends in $days day${days == 1 ? '' : 's'}',
+                  subtitle: 'Renew for 0% commission',
+                  time: '',
+                  route: '/driver/subscription'));
             }
           } catch (_) {}
         }
       }
 
-      // Wallet transactions — payout
       if (results[3].statusCode == 200) {
         final w = jsonDecode(results[3].body) as Map<String, dynamic>;
-        final txs = (w["transactions"] as List?) ?? [];
-        for (final e in txs.take(3)) {
+        for (final e in ((w["transactions"] as List?) ?? []).take(4)) {
           final t = Map<String, dynamic>.from(e as Map);
-          if (t["type"]?.toString() == 'debit' &&
-              (t["description"]?.toString() ?? '').contains('ayout')) {
-            items.add(_Item(
-              icon: Icons.account_balance_rounded,
-              color: NeuColors.textDark,
-              title: '₹${t["amount"]} ka payout hua',
-              subtitle: t["description"]?.toString() ?? '',
-              time: _ago(t["createdAt"]?.toString()),
-              route: '/driver/wallet',
-            ));
+          final desc = t["description"]?.toString() ?? '';
+          if (t["type"]?.toString() == 'debit' && desc.contains('ayout')) {
+            items.add(_NItem(
+                icon: Icons.account_balance_rounded,
+                color: AppTheme.primary,
+                kind: 'payout',
+                title: 'Payout ₹${t["amount"]}',
+                subtitle: desc,
+                time: _ago(t["createdAt"]?.toString()),
+                route: '/driver/wallet'));
           }
         }
       }
     } catch (_) {}
-    if (mounted) {
-      setState(() {
-        _items = items;
-        _loading = false;
-      });
-    }
+    if (mounted) setState(() {
+      _items = items;
+      _loading = false;
+    });
   }
+
+  List<_NItem> get _shown =>
+      _tab == 'all' ? _items : _items.where((e) => e.kind == _tab).toList();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: NeuColors.bg,
-      body: SafeArea(
+      backgroundColor: AppTheme.background,
+      body: Column(
+        children: [
+          _header(context),
+          _tabs(),
+          Expanded(child: _body()),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppTheme.navy, AppTheme.primaryDeep],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          padding: const EdgeInsets.fromLTRB(8, 8, 20, 20),
+          child: Row(
             children: [
-              const NeuHeader(
-                title: 'Notifications',
-                subtitle: 'Kamayi se judi taaza khabar',
+              IconButton(
+                icon: const Icon(Icons.arrow_back_rounded,
+                    color: Colors.white),
+                onPressed: () => context.pop(),
               ),
-              const SizedBox(height: 18),
-              Expanded(child: _body()),
+              const Expanded(
+                child: Text('Notifications',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800)),
+              ),
+              const Icon(Icons.notifications_outlined,
+                  color: Colors.white70, size: 22),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _tabs() {
+    const tabs = [
+      ('all', 'All'),
+      ('bid', 'Bids'),
+      ('payout', 'Payouts'),
+    ];
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 4),
+      child: Row(
+        children: tabs.map((t) {
+          final sel = _tab == t.$1;
+          return Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: GestureDetector(
+              onTap: () => setState(() => _tab = t.$1),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 18, vertical: 9),
+                decoration: BoxDecoration(
+                  gradient: sel ? AppTheme.goldGradient : null,
+                  color: sel ? null : AppTheme.surface,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: AppTheme.shadowSm,
+                ),
+                child: Text(t.$2,
+                    style: TextStyle(
+                        color: sel ? Colors.white : AppTheme.textSecondary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12.5)),
+              ),
+            ),
+          );
+        }).toList(),
       ),
     );
   }
@@ -207,7 +267,8 @@ class _DriverNotificationsScreenState
     if (_loading) {
       return const Center(child: CircularProgressIndicator(strokeWidth: 2.5));
     }
-    if (_items.isEmpty) {
+    final list = _shown;
+    if (list.isEmpty) {
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -216,22 +277,23 @@ class _DriverNotificationsScreenState
               width: 84,
               height: 84,
               decoration: BoxDecoration(
-                color: NeuColors.card,
+                color: AppTheme.surface,
                 shape: BoxShape.circle,
-                boxShadow: NeuShadows.raised(),
+                boxShadow: AppTheme.shadowSm,
               ),
               child: const Icon(Icons.notifications_none_rounded,
-                  size: 36, color: NeuColors.textMuted),
+                  size: 36, color: AppTheme.textTertiary),
             ),
             const SizedBox(height: 16),
-            const Text('Abhi koi notification nahi',
+            const Text('Nothing here yet',
                 style: TextStyle(
-                    color: NeuColors.textDark,
                     fontWeight: FontWeight.w800,
-                    fontSize: 16)),
+                    fontSize: 16,
+                    color: AppTheme.textPrimary)),
             const SizedBox(height: 6),
-            const Text('Online jao — nayi requests yahin aayengi.',
-                style: TextStyle(color: NeuColors.textMuted, fontSize: 13)),
+            const Text('Go online — requests will appear here.',
+                style: TextStyle(
+                    color: AppTheme.textSecondary, fontSize: 13)),
           ],
         ),
       );
@@ -239,56 +301,68 @@ class _DriverNotificationsScreenState
     return RefreshIndicator(
       onRefresh: _load,
       child: ListView.separated(
-        padding: const EdgeInsets.only(bottom: 24),
-        itemCount: _items.length,
-        separatorBuilder: (_, __) => const SizedBox(height: 12),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+        itemCount: list.length,
+        separatorBuilder: (_, __) => const SizedBox(height: 10),
         itemBuilder: (_, i) {
-          final n = _items[i];
-          return NeuCard(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
-            onTap:
-                n.route == null ? null : () => context.go(n.route!),
-            child: Row(
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: n.color.withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
+          final n = list[i];
+          return GestureDetector(
+            onTap: n.route == null ? null : () => context.go(n.route!),
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 14, vertical: 13),
+              decoration: BoxDecoration(
+                color: AppTheme.surface,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: AppTheme.shadowSm,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: n.color.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(n.icon, color: n.color, size: 21),
                   ),
-                  child: Icon(n.icon, color: n.color, size: 22),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(n.title,
-                          style: const TextStyle(
-                              color: NeuColors.textDark,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 14)),
-                      const SizedBox(height: 2),
-                      Text(n.subtitle,
-                          style: const TextStyle(
-                              color: NeuColors.textMuted, fontSize: 12.5)),
-                      if (n.time.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(n.time,
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Text(n.title,
+                                  style: const TextStyle(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 14,
+                                      color: AppTheme.textPrimary)),
+                            ),
+                            if (n.time.isNotEmpty)
+                              Text(n.time,
+                                  style: const TextStyle(
+                                      color: AppTheme.textTertiary,
+                                      fontSize: 11)),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(n.subtitle,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
-                                color: NeuColors.textMuted,
-                                fontSize: 11,
-                                fontStyle: FontStyle.italic)),
+                                color: AppTheme.textSecondary,
+                                fontSize: 12.5)),
                       ],
-                    ],
+                    ),
                   ),
-                ),
-                if (n.route != null)
-                  const Icon(Icons.chevron_right_rounded,
-                      color: NeuColors.textMuted),
-              ],
+                  if (n.route != null)
+                    const Icon(Icons.chevron_right_rounded,
+                        color: AppTheme.textTertiary),
+                ],
+              ),
             ),
           );
         },
