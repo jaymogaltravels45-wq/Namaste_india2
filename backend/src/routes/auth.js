@@ -5,12 +5,16 @@ const crypto = require("crypto");
 // ─── Supabase Admin client (service role — backend only) ───────────────────
 const supabaseAdmin = require("../config/supabase");
 
+// ─── OTP store (MongoDB) ────────────────────────────────────────────────────
+const Otp = require("../models/Otp");
+
 // ─── Helpers ────────────────────────────────────────────────────────────────
 const fmtPhone = (p) => (p.startsWith("+91") ? p : "+91" + p.replace(/\s+/g, ""));
 
+// Fast2SMS wants the plain 10-digit Indian mobile (no +91, no spaces).
+const fast2smsNumber = (fmt) => fmt.replace("+91", "").replace(/\D/g, "").slice(-10);
+
 // SECURITY: USER_SALT has NO fallback — index.js refuses to boot without it.
-// (The old "namaste_default_salt_change_me" default meant every deployment
-// shared the same password derivation secret.)
 const USER_SALT = process.env.USER_SALT;
 
 const phoneToPassword = (phone) =>
@@ -25,25 +29,49 @@ const ROLES    = ["customer", "driver", "admin"];
 
 const validPhone = (p) => typeof p === "string" && PHONE_RE.test(p.trim());
 
-// ─── MOCK OTP (set MOCK_OTP=true in .env for testing without MSG91) ─────────
+// ─── MOCK OTP (set MOCK_OTP=true in .env for testing without SMS) ───────────
 const MOCK_OTP_ENABLED = process.env.MOCK_OTP === "true";
 const MOCK_OTP_CODE    = process.env.MOCK_OTP_CODE || "123456";
 
-// MSG91 classic OTP API (v5) requires the identifier with country code but
-// WITHOUT the "+" prefix (e.g. "919106177858", not "+919106177858").
-const msg91Identifier = (fmt) => fmt.replace("+", "");
+// ─── Fast2SMS (OTP SMS without DLT registration) ───────────────────────────
+// POST https://www.fast2sms.com/dev/bulkV2
+//   Headers: { authorization: FAST2SMS_API_KEY, Content-Type: application/json }
+//   Body:    { route: "otp", variables_values: "<otp>", numbers: "<10-digit>" }
+// The "otp" route delivers through Fast2SMS's own DLT-registered template as
+// "Your OTP: <code>" — no DLT registration needed on our side.
+// Response: { return: true, request_id: "..." } on success.
+//
+// NOTE: MSG91's classic OTP API was tried first but cannot deliver SMS in
+// India without a DLT-registered template_id (API returns "success" while the
+// SMS is silently blocked). The Flutter app's contract is unchanged.
+const FAST2SMS_API_KEY = process.env.FAST2SMS_API_KEY;
 
-// ─── MSG91 classic OTP API (server-side) ────────────────────────────────────
-// Send:    POST https://control.msg91.com/api/v5/otp?mobile=91XXXXXXXXXX&otp_length=4
-// Verify:  GET  https://control.msg91.com/api/v5/otp/verify?mobile=91XXXXXXXXXX&otp=1234
-// Auth: account authkey in the `authkey` header. (The OTP *Widget* tokenAuth
-// flow has no server-side REST endpoint — widget send/verify is client-SDK
-// only — so the backend uses the classic OTP API instead.)
-const MSG91_AUTH_KEY = process.env.MSG91_AUTH_KEY;
+const OTP_TTL_MS   = 5 * 60 * 1000;  // OTP valid 5 minutes
+const OTP_MAX_ATTEMPTS = 5;          // >5 wrong tries invalidates the OTP
 
-// MSG91 v5 APIs can return HTTP 200 with an error in the body:
-// { "type": "error", "message": "..." } — so the body must be checked too.
-const msg91Success = (data) => data && data.type === "success";
+const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
+
+// SECURITY: crypto.randomInt, never Math.random.
+const generateOtp = () => String(crypto.randomInt(1000, 10000));
+
+async function sendSmsViaFast2Sms(number10, otp) {
+  const { status, data } = await axios.post(
+    "https://www.fast2sms.com/dev/bulkV2",
+    { route: "otp", variables_values: otp, numbers: number10 },
+    {
+      headers: {
+        authorization: FAST2SMS_API_KEY,
+        "Content-Type": "application/json",
+      },
+      timeout: 30000,
+    }
+  );
+  console.log("Fast2SMS response:", JSON.stringify(data));
+  if (status !== 200 || !data || data.return !== true) {
+    throw new Error(data?.message || "Fast2SMS rejected the request");
+  }
+  return data.request_id || null;
+}
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/send-otp
@@ -58,47 +86,34 @@ router.post("/send-otp", async (req, res) => {
 
     const fmt = fmtPhone(phone.trim());
 
-    // ── MOCK mode: skip MSG91, always return success ──
+    // ── MOCK mode: skip SMS, always return success ──
     if (MOCK_OTP_ENABLED) {
       console.log(`[MOCK OTP] send-otp called for ${fmt} — mock code: ${MOCK_OTP_CODE}`);
       return res.json({ success: true, message: `OTP sent (mock: use ${MOCK_OTP_CODE})`, mock: true, reqId: "mock-req-id" });
     }
 
-    if (!MSG91_AUTH_KEY) {
-      console.error("send-otp: MSG91_AUTH_KEY not configured");
+    if (!FAST2SMS_API_KEY) {
+      console.error("send-otp: FAST2SMS_API_KEY not configured");
       return res.status(500).json({ success: false, message: "OTP service not configured" });
     }
 
-    // ── REAL MSG91 classic OTP API ──
-    // Auth = account authkey in the `authkey` header.
-    const { status, data } = await axios.post(
-      "https://control.msg91.com/api/v5/otp",
-      null,
-      {
-        params: {
-          mobile: msg91Identifier(fmt),
-          otp_length: 4,
-          otp_expiry: 5,
-        },
-        headers: { authkey: MSG91_AUTH_KEY, "Content-Type": "application/json" },
-      }
-    );
+    // ── Generate OTP locally, store only its hash ──
+    const otp = generateOtp();
+    const doc = await Otp.createForPhone(fmt, sha256(otp), OTP_TTL_MS);
 
-    // Log the raw MSG91 response for debugging delivery issues
-    console.log("MSG91 sendOTP response:", JSON.stringify(data));
-
-    if (status !== 200 || !msg91Success(data)) {
-      const msg = data?.message || "MSG91 rejected the OTP request";
-      console.error("send-otp failed:", msg);
-      return res.status(502).json({ success: false, message: "Failed to send OTP: " + msg });
+    // ── Send via Fast2SMS ──
+    try {
+      await sendSmsViaFast2Sms(fast2smsNumber(fmt), otp);
+    } catch (smsErr) {
+      // SMS failed — remove the OTP so a stale code can't linger.
+      await Otp.deleteMany({ phone: fmt }).catch(() => {});
+      console.error("send-otp SMS failed:", smsErr.message);
+      return res.status(502).json({ success: false, message: "Failed to send OTP. Try again." });
     }
 
-    // Classic API verifies with mobile+otp; no reqId is needed. We still return
-    // MSG91's request_id as reqId so the Flutter app (which threads reqId
-    // through its screens) keeps working unchanged — verify ignores it.
-    const reqId = data.request_id || data.reqId || null;
-    if (!reqId) console.warn("send-otp: MSG91 response had no request_id");
-    res.json({ success: true, message: "OTP sent successfully", reqId });
+    // reqId is the OTP doc id — the Flutter app threads it through its
+    // screens; verify-otp accepts it but looks the OTP up by phone.
+    res.json({ success: true, message: "OTP sent successfully", reqId: String(doc._id) });
   } catch (e) {
     console.error("send-otp error:", e.response?.data || e.message);
     res.status(500).json({ success: false, message: "Failed to send OTP. Try again." });
@@ -131,35 +146,26 @@ router.post("/verify-otp", async (req, res) => {
         return res.status(400).json({ success: false, message: "Invalid OTP (mock mode)" });
       }
     } else {
-      // REAL MSG91 classic OTP verify — needs only mobile + otp.
-      // reqId is optional/ignored (kept in the contract for the Flutter app,
-      // which threads it through; the classic API does not use it).
-      if (!MSG91_AUTH_KEY) {
-        console.error("verify-otp: MSG91_AUTH_KEY not configured");
-        return res.status(500).json({ success: false, message: "OTP service not configured" });
-      }
-      try {
-        const { data } = await axios.get(
-          "https://control.msg91.com/api/v5/otp/verify",
-          {
-            params: {
-              mobile: msg91Identifier(fmt),
-              otp: String(otp).trim(),
-            },
-            headers: { authkey: MSG91_AUTH_KEY },
-          }
-        );
-        console.log("MSG91 verifyOTP response:", JSON.stringify(data));
-        if (!msg91Success(data)) {
-          return res.status(400).json({
-            success: false,
-            message: data?.message || "Invalid or expired OTP",
-          });
-        }
-      } catch (msgErr) {
-        console.error("MSG91 verify error:", msgErr.response?.data || msgErr.message);
+      // REAL: verify against the hashed OTP in MongoDB.
+      const doc = await Otp.findOne({ phone: fmt });
+      if (!doc) {
         return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
       }
+      if (doc.attempts >= OTP_MAX_ATTEMPTS) {
+        await Otp.deleteMany({ phone: fmt }).catch(() => {});
+        return res.status(400).json({ success: false, message: "Too many attempts. Request a new OTP." });
+      }
+      if (doc.expiresAt.getTime() < Date.now()) {
+        await Otp.deleteMany({ phone: fmt }).catch(() => {});
+        return res.status(400).json({ success: false, message: "OTP expired. Request a new one." });
+      }
+      if (sha256(String(otp).trim()) !== doc.otpHash) {
+        doc.attempts += 1;
+        await doc.save().catch(() => {});
+        return res.status(400).json({ success: false, message: "Invalid OTP" });
+      }
+      // OTP correct — single-use, delete it.
+      await Otp.deleteMany({ phone: fmt }).catch(() => {});
     }
 
     // ── Step 2: Find or create Supabase Auth user ──

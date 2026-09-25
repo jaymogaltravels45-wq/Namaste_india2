@@ -23,9 +23,9 @@ services:
         sync: false
       - key: MSG91_AUTH_TOKEN
         sync: false
-      # MSG91 account authkey (MSG91 panel > API section) — classic OTP API
-      # (send + verify) isi se authenticate hota hai. Render dashboard me set karo.
-      - key: MSG91_AUTH_KEY
+      # Fast2SMS API key (fast2sms.com > Dev API) — OTP SMS bina DLT ke.
+      # Render dashboard me set karo.
+      - key: FAST2SMS_API_KEY
         sync: false
       - key: USER_SALT
         generateValue: true
