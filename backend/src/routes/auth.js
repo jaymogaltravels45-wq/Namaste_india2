@@ -29,6 +29,14 @@ const validPhone = (p) => typeof p === "string" && PHONE_RE.test(p.trim());
 const MOCK_OTP_ENABLED = process.env.MOCK_OTP === "true";
 const MOCK_OTP_CODE    = process.env.MOCK_OTP_CODE || "123456";
 
+// MSG91 Widget API requires the mobile WITHOUT the "+" prefix
+// (e.g. "919106177858", not "+919106177858") — per MSG91 docs.
+const msg91Mobile = (fmt) => fmt.replace("+", "");
+
+// MSG91 v5 APIs can return HTTP 200 with an error in the body:
+// { "type": "error", "message": "..." } — so the body must be checked too.
+const msg91Success = (data) => data && data.type === "success";
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/send-otp
 // Body: { phone: "9876543210" }
@@ -49,11 +57,11 @@ router.post("/send-otp", async (req, res) => {
 
     // ── REAL MSG91 Widget API ──
     // widget_id (not template_id) is the correct field for MSG91 Widget OTP
-    const { status } = await axios.post(
+    const { status, data } = await axios.post(
       "https://control.msg91.com/api/v5/widget/sendOTP",
       {
-        widget_id: process.env.MSG91_WIDGET_ID,   // ✅ FIXED: was template_id
-        mobile: fmt,
+        widget_id: process.env.MSG91_WIDGET_ID,
+        mobile: msg91Mobile(fmt),   // ✅ no "+" prefix, per MSG91 docs
       },
       {
         headers: {
@@ -63,7 +71,14 @@ router.post("/send-otp", async (req, res) => {
       }
     );
 
-    if (status !== 200) throw new Error("MSG91 sendOTP failed with status " + status);
+    // Log the raw MSG91 response for debugging delivery issues
+    console.log("MSG91 sendOTP response:", JSON.stringify(data));
+
+    if (status !== 200 || !msg91Success(data)) {
+      const msg = data?.message || "MSG91 rejected the OTP request";
+      console.error("send-otp failed:", msg);
+      return res.status(502).json({ success: false, message: "Failed to send OTP: " + msg });
+    }
 
     res.json({ success: true, message: "OTP sent successfully" });
   } catch (e) {
@@ -100,11 +115,11 @@ router.post("/verify-otp", async (req, res) => {
     } else {
       // REAL MSG91 Widget verify
       try {
-        await axios.post(
+        const { data } = await axios.post(
           "https://control.msg91.com/api/v5/widget/verifyOTP",
           {
-            widget_id: process.env.MSG91_WIDGET_ID,   // ✅ FIXED: added widget_id
-            mobile: fmt,
+            widget_id: process.env.MSG91_WIDGET_ID,
+            mobile: msg91Mobile(fmt),   // ✅ no "+" prefix, per MSG91 docs
             otp: String(otp),
           },
           {
@@ -114,6 +129,13 @@ router.post("/verify-otp", async (req, res) => {
             },
           }
         );
+        console.log("MSG91 verifyOTP response:", JSON.stringify(data));
+        if (!msg91Success(data)) {
+          return res.status(400).json({
+            success: false,
+            message: data?.message || "Invalid or expired OTP",
+          });
+        }
       } catch (msgErr) {
         console.error("MSG91 verify error:", msgErr.response?.data || msgErr.message);
         return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
