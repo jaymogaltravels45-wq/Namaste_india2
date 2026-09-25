@@ -1,5 +1,8 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
+import "package:flutter_map/flutter_map.dart";
+import "package:latlong2/latlong.dart";
+import "package:geolocator/geolocator.dart";
 import "../../../core/theme/app_theme.dart";
 import "../../../core/widgets/premium.dart";
 
@@ -47,18 +50,20 @@ class _State extends State<DriverHomeScreen> {
   }
 
   @override
-  Widget build(BuildContext ctx) => Scaffold(
-        backgroundColor: AppTheme.background,
-        body: Column(
-          children: [
-            _hero(ctx),
-            if (!_canBook) _negativeBanner(),
-            Expanded(
-              child: _canBook && _requests.isNotEmpty
-                  ? _list()
-                  : _emptyView(),
-            ),
-          ],
+  Widget build(BuildContext ctx) => DoubleTapToExit(
+        child: Scaffold(
+          backgroundColor: AppTheme.background,
+          body: Column(
+            children: [
+              _hero(ctx),
+              if (!_canBook) _negativeBanner(),
+              Expanded(
+                child: _canBook && _requests.isNotEmpty
+                    ? _list()
+                    : _emptyView(),
+              ),
+            ],
+          ),
         ),
       );
 
@@ -387,6 +392,8 @@ class _State extends State<DriverHomeScreen> {
   Widget _list() => ListView(
         padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
         children: [
+          const Entrance(delayMs: 0, child: _LiveMapCard()),
+          const SizedBox(height: 14),
           const SectionTitle(title: 'Nayi Requests'),
           const SizedBox(height: 10),
           ..._requests.asMap().entries.map(
@@ -417,6 +424,150 @@ class _State extends State<DriverHomeScreen> {
             ? null
             : (_canBook ? () => setState(() => _online = true) : null),
       );
+}
+
+/// Driver ki live location dikhane wala mini map card.
+class _LiveMapCard extends StatefulWidget {
+  const _LiveMapCard();
+
+  @override
+  State<_LiveMapCard> createState() => _LiveMapCardState();
+}
+
+class _LiveMapCardState extends State<_LiveMapCard> {
+  final _mapCtrl = MapController();
+  LatLng? _pos;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _locate();
+  }
+
+  Future<void> _locate() async {
+    try {
+      var perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.denied ||
+          perm == LocationPermission.deniedForever) {
+        if (mounted) setState(() => _loading = false);
+        return;
+      }
+      final p = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+          timeLimit: const Duration(seconds: 10));
+      if (!mounted) return;
+      setState(() {
+        _pos = LatLng(p.latitude, p.longitude);
+        _loading = false;
+      });
+      _mapCtrl.move(_pos!, 14);
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 170,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(AppTheme.rLg),
+        boxShadow: AppTheme.shadowMd,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          FlutterMap(
+            mapController: _mapCtrl,
+            options: MapOptions(
+              initialCenter: _pos ?? const LatLng(23.0225, 72.5714),
+              initialZoom: 13,
+              interactionOptions: const InteractionOptions(
+                flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+              ),
+            ),
+            children: [
+              TileLayer(
+                urlTemplate:
+                    'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                userAgentPackageName: 'com.namasteindia.app',
+              ),
+              if (_pos != null)
+                MarkerLayer(markers: [
+                  Marker(
+                    point: _pos!,
+                    width: 44,
+                    height: 44,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppTheme.primary,
+                        shape: BoxShape.circle,
+                        border:
+                            Border.all(color: Colors.white, width: 3),
+                        boxShadow: AppTheme.shadowMd,
+                      ),
+                      child: const Icon(Icons.directions_car,
+                          color: Colors.white, size: 22),
+                    ),
+                  ),
+                ]),
+            ],
+          ),
+          if (_loading)
+            Container(
+              color: Colors.white.withValues(alpha: .6),
+              child: const Center(
+                  child: CircularProgressIndicator(strokeWidth: 2)),
+            ),
+          Positioned(
+            left: 10,
+            top: 10,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                  horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .55),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.radar, size: 14, color: Colors.white),
+                  SizedBox(width: 5),
+                  Text('Meri live location',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700)),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            right: 10,
+            bottom: 10,
+            child: GestureDetector(
+              onTap: _locate,
+              child: Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: AppTheme.shadowMd,
+                ),
+                child: const Icon(Icons.my_location,
+                    color: AppTheme.primary, size: 20),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _RequestCard extends StatelessWidget {

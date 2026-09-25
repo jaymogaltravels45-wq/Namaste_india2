@@ -32,6 +32,12 @@ dependencies:
   # Media
   image_picker: ^1.0.7
 
+  # Maps (no API key needed - OpenStreetMap)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.1
+  geolocator: ^11.0.0
+  geocoding: ^3.0.0
+
 
 dev_dependencies:
   flutter_test:

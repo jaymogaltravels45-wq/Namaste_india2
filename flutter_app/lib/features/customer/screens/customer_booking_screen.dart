@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../booking/widgets/map_location_picker.dart';
 
 class CustomerBookingScreen extends StatefulWidget {
   final String? type;
@@ -19,6 +20,8 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   final _dropCtrl = TextEditingController();
   final _kmCtrl = TextEditingController();
   final _bidCtrl = TextEditingController();
+  PickedLocation? _pickupLoc;
+  PickedLocation? _dropLoc;
 
   String _vehicle = 'sedan';
   String _localPkg = '8h/80km';
@@ -149,6 +152,27 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     }
   }
 
+  Future<void> _pickOnMap(bool isPickup) async {
+    final res = await Navigator.of(context).push<PickedLocation>(
+      MaterialPageRoute(
+        builder: (_) => MapLocationPicker(
+          title: isPickup ? 'Pickup Location' : 'Drop Location',
+          initial: isPickup ? _pickupLoc : _dropLoc,
+        ),
+      ),
+    );
+    if (res == null || !mounted) return;
+    setState(() {
+      if (isPickup) {
+        _pickupLoc = res;
+        _pickupCtrl.text = res.address;
+      } else {
+        _dropLoc = res;
+        _dropCtrl.text = res.address;
+      }
+    });
+  }
+
   Future<void> _confirmBooking() async {
     if (_pickupCtrl.text.trim().isEmpty) {
       _snack('Pickup address likhiye', error: true);
@@ -170,8 +194,22 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       final payload = <String, dynamic>{
         'bookingType': _backendType,
         'vehicleType': _vehicle,
-        'pickup': {'address': _pickupCtrl.text.trim()},
-        'drop': {'address': _dropCtrl.text.trim()},
+        'pickup': {
+          'address': _pickupCtrl.text.trim(),
+          if (_pickupLoc != null)
+            'location': {
+              'type': 'Point',
+              'coordinates': [_pickupLoc!.lng, _pickupLoc!.lat],
+            },
+        },
+        'drop': {
+          'address': _dropCtrl.text.trim(),
+          if (_dropLoc != null)
+            'location': {
+              'type': 'Point',
+              'coordinates': [_dropLoc!.lng, _dropLoc!.lat],
+            },
+        },
         'pickupTime':
             (_pickupTime ?? DateTime.now().add(const Duration(hours: 1)))
                 .toIso8601String(),
@@ -233,12 +271,22 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           children: [
             _headerCard(),
             const SizedBox(height: 16),
-            _textField('Pickup address', _pickupCtrl, Icons.my_location,
-                'e.g. CG Road, Ahmedabad'),
+            _locationRow(
+              label: 'Pickup location',
+              hint: 'Map pe select karo',
+              icon: Icons.my_location,
+              ctrl: _pickupCtrl,
+              onTap: () => _pickOnMap(true),
+            ),
             const SizedBox(height: 12),
             if (_kind != 'local')
-              _textField('Drop address', _dropCtrl, Icons.location_on,
-                  'e.g. Surat Railway Station'),
+              _locationRow(
+                label: 'Drop location',
+                hint: 'Map pe select karo',
+                icon: Icons.location_on,
+                ctrl: _dropCtrl,
+                onTap: () => _pickOnMap(false),
+              ),
             if (_kind != 'local') const SizedBox(height: 12),
             Row(
               children: [
@@ -362,6 +410,90 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           ],
         ),
       );
+
+  /// Tappable location row that opens the map picker.
+  Widget _locationRow({
+    required String label,
+    required String hint,
+    required IconData icon,
+    required TextEditingController ctrl,
+    required VoidCallback onTap,
+  }) {
+    final hasValue = ctrl.text.trim().isNotEmpty;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label,
+            style: const TextStyle(
+                fontWeight: FontWeight.w600, fontSize: 13)),
+        const SizedBox(height: 6),
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(AppTheme.rMd),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(AppTheme.rMd),
+              border: Border.all(
+                  color: hasValue
+                      ? AppTheme.success.withValues(alpha: .5)
+                      : AppTheme.border),
+              boxShadow: AppTheme.shadowSm,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary.withValues(alpha: .1),
+                    borderRadius: BorderRadius.circular(AppTheme.rSm),
+                  ),
+                  child: Icon(icon, color: AppTheme.primary, size: 20),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    hasValue ? ctrl.text.trim() : hint,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: hasValue
+                          ? AppTheme.textPrimary
+                          : AppTheme.textSecondary,
+                      fontWeight:
+                          hasValue ? FontWeight.w500 : FontWeight.normal,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppTheme.primary,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.map, size: 14, color: Colors.white),
+                      SizedBox(width: 4),
+                      Text('Map',
+                          style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   Widget _textField(String label, TextEditingController ctrl, IconData icon,
       String hint,

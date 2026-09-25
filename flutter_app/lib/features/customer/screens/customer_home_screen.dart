@@ -2,6 +2,7 @@ import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "../../../core/l10n/app_strings.dart";
 import "../../../core/theme/app_theme.dart";
+import "../../../core/widgets/premium.dart";
 
 /// 2026-style customer home: 3D tilt trip cards, staggered entrance,
 /// glowing gradients and a premium hero header.
@@ -47,18 +48,20 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
       );
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-        backgroundColor: AppTheme.background,
-        body: ValueListenableBuilder<String>(
-          valueListenable: AppLang.current,
-          builder: (_, __, ___) => CustomScrollView(
-            slivers: [
-              _hero(context),
-              SliverToBoxAdapter(child: _body(context)),
-            ],
+  Widget build(BuildContext context) => DoubleTapToExit(
+        child: Scaffold(
+          backgroundColor: AppTheme.background,
+          body: ValueListenableBuilder<String>(
+            valueListenable: AppLang.current,
+            builder: (_, __, ___) => CustomScrollView(
+              slivers: [
+                _hero(context),
+                SliverToBoxAdapter(child: _body(context)),
+              ],
+            ),
           ),
+          bottomNavigationBar: _bottomNav(context),
         ),
-        bottomNavigationBar: _bottomNav(context),
       );
 
   SliverAppBar _hero(BuildContext ctx) => SliverAppBar(

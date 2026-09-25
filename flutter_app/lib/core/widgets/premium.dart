@@ -497,3 +497,47 @@ class SectionTitle extends StatelessWidget {
     );
   }
 }
+
+/// Wraps a home screen: first back-press shows a hint, second exits.
+/// Fixes "back dabate hi app band ho jata hai".
+class DoubleTapToExit extends StatefulWidget {
+  final Widget child;
+  final String message;
+  const DoubleTapToExit({
+    super.key,
+    required this.child,
+    this.message = 'Wapas back dabao app band karne ke liye',
+  });
+
+  @override
+  State<DoubleTapToExit> createState() => _DoubleTapToExitState();
+}
+
+class _DoubleTapToExitState extends State<DoubleTapToExit> {
+  DateTime? _lastBack;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        final now = DateTime.now();
+        if (_lastBack != null &&
+            now.difference(_lastBack!) < const Duration(seconds: 2)) {
+          Navigator.of(context).pop();
+          return;
+        }
+        _lastBack = now;
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(SnackBar(
+            content: Text(widget.message),
+            duration: const Duration(seconds: 2),
+            behavior: SnackBarBehavior.floating,
+          ));
+      },
+      child: widget.child,
+    );
+  }
+}
