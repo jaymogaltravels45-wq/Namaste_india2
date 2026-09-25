@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/auth/auth_service.dart';
 
@@ -46,8 +47,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
   }
 
   Future<void> _saveLanguage(String value) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_prefsKeys['language']!, value);
+    await AppLang.set(value);
     if (!mounted) return;
     setState(() => _language = value);
     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -209,9 +209,11 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                         TextStyle(fontWeight: FontWeight.w600, fontSize: 14)),
               ),
               DropdownButton<String>(
-                value: _language,
+                value: AppLang.supported.contains(_language)
+                    ? _language
+                    : 'Hinglish',
                 underline: const SizedBox(),
-                items: const ['Hinglish', 'English', 'Hindi']
+                items: AppLang.supported
                     .map((l) =>
                         DropdownMenuItem(value: l, child: Text(l)))
                     .toList(),

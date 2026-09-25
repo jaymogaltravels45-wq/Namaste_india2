@@ -18,6 +18,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   final _pickupCtrl = TextEditingController();
   final _dropCtrl = TextEditingController();
   final _kmCtrl = TextEditingController();
+  final _bidCtrl = TextEditingController();
 
   String _vehicle = 'sedan';
   String _localPkg = '8h/80km';
@@ -177,6 +178,13 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       };
       if (_kind == 'local') {
         payload['localPackage'] = _localPkg;
+      } else if (_kind == 'bid') {
+        final bid = double.tryParse(_bidCtrl.text.trim()) ?? 0;
+        if (bid <= 0) {
+          _snack('Apni bid amount (₹) daaliye', error: true);
+          return;
+        }
+        payload['customerBid'] = bid;
       } else if (_kind != 'bid') {
         payload['distanceKm'] = double.tryParse(_kmCtrl.text.trim()) ?? 0;
       }
@@ -209,6 +217,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
     _pickupCtrl.dispose();
     _dropCtrl.dispose();
     _kmCtrl.dispose();
+    _bidCtrl.dispose();
     super.dispose();
   }
 
@@ -256,7 +265,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
             const SizedBox(height: 12),
             _dateTimeTile(),
             const SizedBox(height: 16),
-            if (_kind == 'bid') _bidNote() else _fareSection(),
+            if (_kind == 'bid') ...[
+              _textField('Tumhari bid (₹)', _bidCtrl, Icons.currency_rupee,
+                  'e.g. 1500',
+                  numeric: true),
+              const SizedBox(height: 12),
+              _bidNote(),
+            ] else
+              _fareSection(),
             const SizedBox(height: 16),
             SizedBox(
               height: 54,

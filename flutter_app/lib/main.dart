@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:supabase_flutter/supabase_flutter.dart";
 import "core/config/app_config.dart";
+import "core/l10n/app_strings.dart";
 import "core/routes/app_router.dart";
 import "core/theme/app_theme.dart";
 
@@ -12,6 +13,7 @@ void main() async {
     return;
   }
   await Supabase.initialize(url: AppConfig.supabaseUrl, anonKey: AppConfig.supabaseAnonKey);
+  await AppLang.load();
   runApp(const NamasteIndiaApp());
 }
 
