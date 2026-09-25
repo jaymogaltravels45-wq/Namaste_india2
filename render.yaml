@@ -23,6 +23,9 @@ services:
         sync: false
       - key: MSG91_AUTH_TOKEN
         sync: false
+      # Widget token (OTP > OTP Widget/SDK > Tokens) — isi se OTP send/verify hota hai
+      - key: MSG91_TOKEN_AUTH
+        sync: false
       - key: MSG91_WIDGET_ID
         sync: false
       - key: USER_SALT

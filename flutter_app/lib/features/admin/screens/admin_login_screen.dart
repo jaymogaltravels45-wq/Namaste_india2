@@ -22,6 +22,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
   final _pinCtrl = TextEditingController();
   bool _loading = false;
   String? _error;
+  String? _reqId; // set on send, refreshed on resend, passed to verify
 
   @override
   void dispose() {
@@ -47,12 +48,15 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       _error = null;
     });
 
-    final sent = await Msg91Service.sendOtp(_phoneCtrl.text.trim());
+    final reqId = await Msg91Service.sendOtp(_phoneCtrl.text.trim());
     if (!mounted) return;
     setState(() => _loading = false);
 
-    if (sent) {
-      setState(() => _step = 1);
+    if (reqId != null) {
+      setState(() {
+        _reqId = reqId;
+        _step = 1;
+      });
     } else {
       setState(() => _error = 'OTP bhejne me dikkat aayi. Phir try karo.');
     }
@@ -63,11 +67,16 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       _loading = true;
       _error = null;
     });
-    final sent = await Msg91Service.sendOtp(_phoneCtrl.text.trim());
+    final reqId = await Msg91Service.sendOtp(_phoneCtrl.text.trim());
     if (!mounted) return;
     setState(() {
       _loading = false;
-      _error = sent ? null : 'Resend failed. Phir try karo.';
+      if (reqId != null) {
+        _reqId = reqId;
+        _error = null;
+      } else {
+        _error = 'Resend failed. Phir try karo.';
+      }
     });
   }
 
@@ -78,8 +87,17 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
       _error = null;
     });
 
+    final reqId = _reqId;
+    if (reqId == null) {
+      setState(() {
+        _loading = false;
+        _error = 'Session expire ho gaya. OTP dobara bhejo.';
+      });
+      return;
+    }
+
     final result =
-        await Msg91Service.verifyOtp(_phoneCtrl.text.trim(), otp, 'admin');
+        await Msg91Service.verifyOtp(_phoneCtrl.text.trim(), otp, 'admin', reqId);
 
     if (!mounted) return;
 

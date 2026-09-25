@@ -8,8 +8,9 @@ class Msg91Service {
   static String formatPhone(String p) =>
       p.startsWith('+91') ? p : '+91${p.replaceAll(' ', '')}';
 
-  /// Returns true if OTP was sent successfully.
-  static Future<bool> sendOtp(String phone) async {
+  /// Sends OTP via the backend. Returns the reqId on success, null on failure.
+  /// The reqId MUST be passed to [verifyOtp] — MSG91 verifies OTPs against it.
+  static Future<String?> sendOtp(String phone) async {
     try {
       final res = await http.post(
         Uri.parse('${AppConfig.apiBaseUrl}/auth/send-otp'),
@@ -17,9 +18,12 @@ class Msg91Service {
         body: jsonEncode({'phone': formatPhone(phone)}),
       );
       final body = jsonDecode(res.body) as Map<String, dynamic>;
-      return res.statusCode == 200 && body['success'] == true;
+      if (res.statusCode == 200 && body['success'] == true) {
+        return body['reqId'] as String?;
+      }
+      return null;
     } catch (_) {
-      return false;
+      return null;
     }
   }
 
@@ -29,6 +33,7 @@ class Msg91Service {
     String phone,
     String otp,
     String role,
+    String reqId,
   ) async {
     try {
       final res = await http.post(
@@ -38,6 +43,7 @@ class Msg91Service {
           'phone': formatPhone(phone),
           'otp': otp,
           'role': role,
+          'reqId': reqId,
         }),
       );
       final body = jsonDecode(res.body) as Map<String, dynamic>;

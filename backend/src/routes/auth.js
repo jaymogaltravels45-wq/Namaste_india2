@@ -29,17 +29,29 @@ const validPhone = (p) => typeof p === "string" && PHONE_RE.test(p.trim());
 const MOCK_OTP_ENABLED = process.env.MOCK_OTP === "true";
 const MOCK_OTP_CODE    = process.env.MOCK_OTP_CODE || "123456";
 
-// MSG91 Widget API requires the mobile WITHOUT the "+" prefix
-// (e.g. "919106177858", not "+919106177858") — per MSG91 docs.
-const msg91Mobile = (fmt) => fmt.replace("+", "");
+// MSG91 Widget API requires the identifier with country code but WITHOUT
+// the "+" prefix (e.g. "919106177858", not "+919106177858") — per MSG91 docs.
+const msg91Identifier = (fmt) => fmt.replace("+", "");
+
+// ─── MSG91 Widget API auth (server-side) ────────────────────────────────────
+// The OTP Widget send/verify endpoints authenticate with the WIDGET TOKEN
+// (tokenAuth) — NOT the account authkey. The widget token is generated under
+// OTP > OTP Widget/SDK > Tokens in the MSG91 panel ("Namasteindia", Enabled).
+const MSG91_TOKEN_AUTH = process.env.MSG91_TOKEN_AUTH;
+const MSG91_WIDGET_ID  = process.env.MSG91_WIDGET_ID;
 
 // MSG91 v5 APIs can return HTTP 200 with an error in the body:
 // { "type": "error", "message": "..." } — so the body must be checked too.
 const msg91Success = (data) => data && data.type === "success";
 
+// sendOTP returns a reqId that MUST be passed to verifyOTP.
+const msg91ReqId = (data) =>
+  data ? (data.reqId || data.req_id || data.requestId || null) : null;
+
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/send-otp
 // Body: { phone: "9876543210" }
+// Returns: { success, message, reqId } — reqId must be sent back to verify-otp
 // ─────────────────────────────────────────────────────────────────────────────
 router.post("/send-otp", async (req, res) => {
   try {
@@ -52,23 +64,24 @@ router.post("/send-otp", async (req, res) => {
     // ── MOCK mode: skip MSG91, always return success ──
     if (MOCK_OTP_ENABLED) {
       console.log(`[MOCK OTP] send-otp called for ${fmt} — mock code: ${MOCK_OTP_CODE}`);
-      return res.json({ success: true, message: `OTP sent (mock: use ${MOCK_OTP_CODE})`, mock: true });
+      return res.json({ success: true, message: `OTP sent (mock: use ${MOCK_OTP_CODE})`, mock: true, reqId: "mock-req-id" });
+    }
+
+    if (!MSG91_TOKEN_AUTH || !MSG91_WIDGET_ID) {
+      console.error("send-otp: MSG91_TOKEN_AUTH or MSG91_WIDGET_ID not configured");
+      return res.status(500).json({ success: false, message: "OTP service not configured" });
     }
 
     // ── REAL MSG91 Widget API ──
-    // widget_id (not template_id) is the correct field for MSG91 Widget OTP
+    // Auth = widget token (tokenAuth) in the body, NOT the account authkey.
     const { status, data } = await axios.post(
       "https://control.msg91.com/api/v5/widget/sendOTP",
       {
-        widget_id: process.env.MSG91_WIDGET_ID,
-        mobile: msg91Mobile(fmt),   // ✅ no "+" prefix, per MSG91 docs
+        tokenAuth: MSG91_TOKEN_AUTH,
+        widgetId: MSG91_WIDGET_ID,
+        identifier: msg91Identifier(fmt),
       },
-      {
-        headers: {
-          authkey: process.env.MSG91_AUTH_TOKEN,
-          "Content-Type": "application/json",
-        },
-      }
+      { headers: { "Content-Type": "application/json" } }
     );
 
     // Log the raw MSG91 response for debugging delivery issues
@@ -80,7 +93,9 @@ router.post("/send-otp", async (req, res) => {
       return res.status(502).json({ success: false, message: "Failed to send OTP: " + msg });
     }
 
-    res.json({ success: true, message: "OTP sent successfully" });
+    const reqId = msg91ReqId(data);
+    if (!reqId) console.warn("send-otp: MSG91 response had no reqId — verify will fail");
+    res.json({ success: true, message: "OTP sent successfully", reqId });
   } catch (e) {
     console.error("send-otp error:", e.response?.data || e.message);
     res.status(500).json({ success: false, message: "Failed to send OTP. Try again." });
@@ -89,12 +104,12 @@ router.post("/send-otp", async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/verify-otp
-// Body: { phone, otp, role? }
+// Body: { phone, otp, reqId, role? } — reqId comes from send-otp's response
 // Returns: { success, session: { access_token, refresh_token }, user, is_new_user }
 // ─────────────────────────────────────────────────────────────────────────────
 router.post("/verify-otp", async (req, res) => {
   try {
-    const { phone, otp, role } = req.body;
+    const { phone, otp, reqId, role } = req.body;
     if (!validPhone(phone) || !OTP_RE.test(String(otp || "").trim()))
       return res.status(400).json({ success: false, message: "Valid phone and OTP are required" });
     if (role && !ROLES.includes(role))
@@ -113,21 +128,20 @@ router.post("/verify-otp", async (req, res) => {
         return res.status(400).json({ success: false, message: "Invalid OTP (mock mode)" });
       }
     } else {
-      // REAL MSG91 Widget verify
+      // REAL MSG91 Widget verify — needs the reqId returned by sendOTP
+      if (!reqId) {
+        return res.status(400).json({ success: false, message: "OTP session expired. Please resend the OTP." });
+      }
       try {
         const { data } = await axios.post(
           "https://control.msg91.com/api/v5/widget/verifyOTP",
           {
-            widget_id: process.env.MSG91_WIDGET_ID,
-            mobile: msg91Mobile(fmt),   // ✅ no "+" prefix, per MSG91 docs
+            tokenAuth: MSG91_TOKEN_AUTH,   // ✅ widget token, NOT account authkey
+            widgetId: MSG91_WIDGET_ID,
+            reqId: String(reqId),
             otp: String(otp),
           },
-          {
-            headers: {
-              authkey: process.env.MSG91_AUTH_TOKEN,
-              "Content-Type": "application/json",
-            },
-          }
+          { headers: { "Content-Type": "application/json" } }
         );
         console.log("MSG91 verifyOTP response:", JSON.stringify(data));
         if (!msg91Success(data)) {

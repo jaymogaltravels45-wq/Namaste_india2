@@ -36,14 +36,14 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     setState(() => _loading = true);
 
     final phone = _phoneCtrl.text.trim();
-    final sent = await Msg91Service.sendOtp(phone);
+    final reqId = await Msg91Service.sendOtp(phone);
 
     setState(() => _loading = false);
 
     if (!mounted) return;
 
-    if (sent) {
-      context.push('/otp', extra: {'phone': phone, 'role': widget.role});
+    if (reqId != null) {
+      context.push('/otp', extra: {'phone': phone, 'role': widget.role, 'reqId': reqId});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

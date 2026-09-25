@@ -65,7 +65,7 @@ class AppRouter {
       }),
       GoRoute(path: '/otp', builder: (_, s) {
         final m = s.extra as Map? ?? {};
-        return OtpScreen(phone: m['phone']?.toString() ?? '', role: m['role']?.toString() ?? 'customer');
+        return OtpScreen(phone: m['phone']?.toString() ?? '', role: m['role']?.toString() ?? 'customer', reqId: m['reqId']?.toString() ?? '');
       }),
       GoRoute(path: '/customer',           builder: (_, __) => const CustomerHomeScreen()),
       GoRoute(path: '/customer/booking',   builder: (_, s) => CustomerBookingScreen(type: (s.extra as Map?)?['type']?.toString())),

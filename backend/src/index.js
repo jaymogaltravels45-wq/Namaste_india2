@@ -40,6 +40,10 @@ if (!FRONTEND_URL) {
   console.warn("\n⚠️  SECURITY WARNING: FRONTEND_URL is not set — CORS will allow ANY origin (*).");
   console.warn("   Set FRONTEND_URL to your admin panel URL, e.g. https://admin.namasteindia.app\n");
 }
+if (!process.env.MSG91_TOKEN_AUTH) {
+  console.warn("\n⚠️  WARNING: MSG91_TOKEN_AUTH is not set — OTP send/verify will fail.");
+  console.warn("   Set it to the MSG91 OTP Widget token (OTP > OTP Widget/SDK > Tokens).\n");
+}
 const corsOrigin = FRONTEND_URL || "*";
 const io = new Server(server, {
   cors: { origin: corsOrigin, methods: ["GET","POST"] }

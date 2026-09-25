@@ -8,7 +8,8 @@ import '../../../core/theme/app_theme.dart';
 class OtpScreen extends StatefulWidget {
   final String phone;
   final String role;
-  const OtpScreen({super.key, required this.phone, required this.role});
+  final String reqId;
+  const OtpScreen({super.key, required this.phone, required this.role, required this.reqId});
 
   @override
   State<OtpScreen> createState() => _OtpScreenState();
@@ -20,6 +21,7 @@ class _OtpScreenState extends State<OtpScreen> {
   bool _resending = false;
   String? _error;
   int _resendCountdown = 30;
+  late String _reqId = widget.reqId; // refreshed on every resend
   late final _countdownTimer = _startCountdown();
 
   @override
@@ -47,7 +49,7 @@ class _OtpScreenState extends State<OtpScreen> {
     if (otp.length < 6) return;
     setState(() { _loading = true; _error = null; });
 
-    final result = await Msg91Service.verifyOtp(widget.phone, otp, widget.role);
+    final result = await Msg91Service.verifyOtp(widget.phone, otp, widget.role, _reqId);
 
     if (!mounted) return;
     setState(() => _loading = false);
@@ -98,16 +100,21 @@ class _OtpScreenState extends State<OtpScreen> {
     if (_resendCountdown > 0 || _resending) return;
     setState(() { _resending = true; _error = null; });
 
-    final sent = await Msg91Service.sendOtp(widget.phone);
+    final reqId = await Msg91Service.sendOtp(widget.phone);
     if (!mounted) return;
 
     setState(() {
       _resending = false;
       _resendCountdown = 30;
-      _error = sent ? null : 'Failed to resend OTP.';
+      if (reqId != null) {
+        _reqId = reqId;
+        _error = null;
+      } else {
+        _error = 'Failed to resend OTP.';
+      }
     });
 
-    if (sent) _startCountdown();
+    if (reqId != null) _startCountdown();
   }
 
   @override
