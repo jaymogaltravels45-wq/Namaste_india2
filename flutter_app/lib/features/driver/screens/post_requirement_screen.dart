@@ -236,7 +236,7 @@ class _PostRequirementScreenState extends State<PostRequirementScreen> {
                   Row(children: [
                     Expanded(
                       child: DropdownButtonFormField<String>(
-                        value: _vehicle,
+                        initialValue: _vehicle,
                         decoration: const InputDecoration(
                           labelText: "Gaadi",
                           prefixIcon:

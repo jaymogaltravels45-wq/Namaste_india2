@@ -534,7 +534,7 @@ class _TiltCardState extends State<_TiltCard>
             ..setEntry(3, 2, 0.0012)
             ..rotateX(_rx)
             ..rotateY(_ry)
-            ..scale(_scale),
+            ..scaleByDouble(_scale, _scale, _scale, 1.0),
           child: widget.child,
         ),
       );
