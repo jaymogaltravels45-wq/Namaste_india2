@@ -1,0 +1,69 @@
+#!/usr/bin/env sh
+
+##############################################################################
+# Gradle wrapper script — tries system Gradle first, then falls back to JAR
+##############################################################################
+
+APP_HOME="$(cd "$(dirname "$0")" && pwd -P)"
+
+JAR="$APP_HOME/gradle/wrapper/gradle-wrapper.jar"
+PROPS="$APP_HOME/gradle/wrapper/gradle-wrapper.properties"
+
+# ------------------------------------------------------------------
+# Strategy 1: wrapper JAR is present — use the standard approach
+# ------------------------------------------------------------------
+if [ -f "$JAR" ]; then
+  if [ -n "$JAVA_HOME" ] && [ -x "$JAVA_HOME/bin/java" ]; then
+    JAVACMD="$JAVA_HOME/bin/java"
+  else
+    JAVACMD="java"
+  fi
+  exec "$JAVACMD" \
+    --add-opens=java.base/java.util=ALL-UNNAMED \
+    --add-opens=java.base/java.lang.invoke=ALL-UNNAMED \
+    --add-opens=java.prefs/java.util.prefs=ALL-UNNAMED \
+    --add-opens=java.base/java.nio.charset=ALL-UNNAMED \
+    --add-opens=java.base/java.net=ALL-UNNAMED \
+    --add-opens=java.base/java.util.concurrent.atomic=ALL-UNNAMED \
+    --add-opens=java.base/sun.nio.ch=ALL-UNNAMED \
+    -classpath "$JAR" \
+    org.gradle.wrapper.GradleWrapperMain "$@"
+fi
+
+# ------------------------------------------------------------------
+# Strategy 2: no wrapper JAR — use system gradle directly
+# ------------------------------------------------------------------
+if command -v gradle >/dev/null 2>&1; then
+  echo "[gradlew] gradle-wrapper.jar not found — using system gradle: $(which gradle)" >&2
+  exec gradle "$@"
+fi
+
+# ------------------------------------------------------------------
+# Strategy 3: try common Codemagic/CI install paths
+# ------------------------------------------------------------------
+for GDIR in \
+  /usr/local/lib/gradle/bin/gradle \
+  /usr/lib/gradle/bin/gradle \
+  /opt/gradle/bin/gradle \
+  /home/builder/.gradle/bin/gradle \
+  /Users/builder/.gradle/bin/gradle
+do
+  if [ -x "$GDIR" ]; then
+    echo "[gradlew] using gradle at $GDIR" >&2
+    exec "$GDIR" "$@"
+  fi
+done
+
+# ------------------------------------------------------------------
+# Nothing worked
+# ------------------------------------------------------------------
+echo "" >&2
+echo "ERROR: Could not find gradle-wrapper.jar or a system Gradle installation." >&2
+echo "  Checked:" >&2
+echo "    \$JAR = $JAR" >&2
+echo "    system PATH" >&2
+echo "  Please either:" >&2
+echo "    1. Add gradle/wrapper/gradle-wrapper.jar to the project, OR" >&2
+echo "    2. Install Gradle and add it to PATH." >&2
+echo "" >&2
+exit 1

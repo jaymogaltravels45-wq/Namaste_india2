@@ -1,0 +1,28 @@
+# ─── Dependencies ─────────────────────────────────────────────
+node_modules/
+
+# ─── Secrets — NEVER commit ───────────────────────────────────
+.env
+.env.local
+.env.*.local
+
+# ─── Flutter / Dart ───────────────────────────────────────────
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+build/
+*.iml
+
+# ─── Frontend build ───────────────────────────────────────────
+frontend/dist/
+frontend/build/
+
+# ─── Logs ─────────────────────────────────────────────────────
+*.log
+npm-debug.log*
+
+# ─── OS / IDE ─────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

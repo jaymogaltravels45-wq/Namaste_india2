@@ -1,0 +1,28 @@
+{
+  "name": "namaste-india-backend",
+  "version": "1.0.0",
+  "description": "Namaste India Cab App - Node.js API",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^8.2.0",
+    "mysql2": "^3.9.2",
+    "@supabase/supabase-js": "^2.43.0",
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "morgan": "^1.10.0",
+    "socket.io": "^4.7.4",
+    "axios": "^1.6.7",
+    "moment-timezone": "^0.5.45",
+    "helmet": "^8.0.0",
+    "express-rate-limit": "^7.4.1"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
+  }
+}

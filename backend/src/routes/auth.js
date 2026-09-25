@@ -1,0 +1,218 @@
+const router = require("express").Router();
+const axios = require("axios");
+const crypto = require("crypto");
+
+// ─── Supabase Admin client (service role — backend only) ───────────────────
+const supabaseAdmin = require("../config/supabase");
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const fmtPhone = (p) => (p.startsWith("+91") ? p : "+91" + p.replace(/\s+/g, ""));
+
+// SECURITY: USER_SALT has NO fallback — index.js refuses to boot without it.
+// (The old "namaste_default_salt_change_me" default meant every deployment
+// shared the same password derivation secret.)
+const USER_SALT = process.env.USER_SALT;
+
+const phoneToPassword = (phone) =>
+  crypto.createHmac("sha256", USER_SALT).update(phone).digest("hex");
+
+const phoneToEmail = (phone) => phone.replace("+", "") + "@namasteindia.app";
+
+// ─── Input validation ───────────────────────────────────────────────────────
+const PHONE_RE = /^\+?\d[\d\s-]{6,16}$/;   // digits, optional +, spaces/dashes
+const OTP_RE   = /^\d{4,8}$/;              // numeric OTP only
+const ROLES    = ["customer", "driver", "admin"];
+
+const validPhone = (p) => typeof p === "string" && PHONE_RE.test(p.trim());
+
+// ─── MOCK OTP (set MOCK_OTP=true in .env for testing without MSG91) ─────────
+const MOCK_OTP_ENABLED = process.env.MOCK_OTP === "true";
+const MOCK_OTP_CODE    = process.env.MOCK_OTP_CODE || "123456";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/send-otp
+// Body: { phone: "9876543210" }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/send-otp", async (req, res) => {
+  try {
+    const { phone } = req.body;
+    if (!validPhone(phone))
+      return res.status(400).json({ success: false, message: "Valid phone number is required" });
+
+    const fmt = fmtPhone(phone.trim());
+
+    // ── MOCK mode: skip MSG91, always return success ──
+    if (MOCK_OTP_ENABLED) {
+      console.log(`[MOCK OTP] send-otp called for ${fmt} — mock code: ${MOCK_OTP_CODE}`);
+      return res.json({ success: true, message: `OTP sent (mock: use ${MOCK_OTP_CODE})`, mock: true });
+    }
+
+    // ── REAL MSG91 Widget API ──
+    // widget_id (not template_id) is the correct field for MSG91 Widget OTP
+    const { status } = await axios.post(
+      "https://control.msg91.com/api/v5/widget/sendOTP",
+      {
+        widget_id: process.env.MSG91_WIDGET_ID,   // ✅ FIXED: was template_id
+        mobile: fmt,
+      },
+      {
+        headers: {
+          authkey: process.env.MSG91_AUTH_TOKEN,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (status !== 200) throw new Error("MSG91 sendOTP failed with status " + status);
+
+    res.json({ success: true, message: "OTP sent successfully" });
+  } catch (e) {
+    console.error("send-otp error:", e.response?.data || e.message);
+    res.status(500).json({ success: false, message: "Failed to send OTP. Try again." });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// POST /api/auth/verify-otp
+// Body: { phone, otp, role? }
+// Returns: { success, session: { access_token, refresh_token }, user, is_new_user }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post("/verify-otp", async (req, res) => {
+  try {
+    const { phone, otp, role } = req.body;
+    if (!validPhone(phone) || !OTP_RE.test(String(otp || "").trim()))
+      return res.status(400).json({ success: false, message: "Valid phone and OTP are required" });
+    if (role && !ROLES.includes(role))
+      return res.status(400).json({ success: false, message: "Invalid role" });
+
+    const fmt      = fmtPhone(phone.trim());
+    const email    = phoneToEmail(fmt);
+    const password = phoneToPassword(fmt);
+    const userRole = role || "customer";
+
+    // ── Step 1: Verify OTP ──
+    if (MOCK_OTP_ENABLED) {
+      // MOCK: only accept the mock code
+      console.log(`[MOCK OTP] verify-otp: received ${otp}, expected ${MOCK_OTP_CODE}`);
+      if (String(otp) !== String(MOCK_OTP_CODE)) {
+        return res.status(400).json({ success: false, message: "Invalid OTP (mock mode)" });
+      }
+    } else {
+      // REAL MSG91 Widget verify
+      try {
+        await axios.post(
+          "https://control.msg91.com/api/v5/widget/verifyOTP",
+          {
+            widget_id: process.env.MSG91_WIDGET_ID,   // ✅ FIXED: added widget_id
+            mobile: fmt,
+            otp: String(otp),
+          },
+          {
+            headers: {
+              authkey: process.env.MSG91_AUTH_TOKEN,
+              "Content-Type": "application/json",
+            },
+          }
+        );
+      } catch (msgErr) {
+        console.error("MSG91 verify error:", msgErr.response?.data || msgErr.message);
+        return res.status(400).json({ success: false, message: "Invalid or expired OTP" });
+      }
+    }
+
+    // ── Step 2: Find or create Supabase Auth user ──
+    let supabaseUserId;
+
+    const { data: signInData, error: signInErr } = await supabaseAdmin.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (!signInErr && signInData?.user) {
+      supabaseUserId = signInData.user.id;
+
+      const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("*")
+        .eq("id", supabaseUserId)
+        .single();
+
+      return res.json({
+        success: true,
+        is_new_user: false,
+        session: signInData.session,
+        user: {
+          id: supabaseUserId,
+          phone: fmt,
+          role: profile?.role || userRole,
+          name: profile?.name || null,
+          profile_complete: !!profile?.name,
+        },
+      });
+    }
+
+    // New user — create
+    const { data: createData, error: createErr } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      password,
+      phone: fmt,
+      user_metadata: { phone: fmt, role: userRole },
+      email_confirm: true,
+      phone_confirm: true,
+    });
+
+    if (createErr) throw new Error("Failed to create user: " + createErr.message);
+    supabaseUserId = createData.user.id;
+
+    // ── Step 3: Upsert profile ──
+    await supabaseAdmin.from("profiles").upsert({
+      id: supabaseUserId,
+      phone: fmt,
+      role: userRole,
+      updated_at: new Date().toISOString(),
+    });
+
+    // ── Step 4: Sign in to get session ──
+    const { data: newSignIn, error: newSignInErr } = await supabaseAdmin.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (newSignInErr) throw new Error("Sign-in after create failed: " + newSignInErr.message);
+
+    res.json({
+      success: true,
+      is_new_user: true,
+      session: newSignIn.session,
+      user: {
+        id: supabaseUserId,
+        phone: fmt,
+        role: userRole,
+        name: null,
+        profile_complete: false,
+      },
+    });
+  } catch (e) {
+    console.error("verify-otp error:", e.message);
+    res.status(400).json({ success: false, message: "OTP verification failed" });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/auth/me  (protected)
+// ─────────────────────────────────────────────────────────────────────────────
+router.get("/me", require("../middleware/auth").authMiddleware, async (req, res) => {
+  try {
+    const { data: profile } = await supabaseAdmin
+      .from("profiles")
+      .select("*")
+      .eq("id", req.user.id)
+      .single();
+
+    res.json({ success: true, user: { id: req.user.id, ...profile } });
+  } catch (e) {
+    res.status(500).json({ success: false, message: e.message });
+  }
+});
+
+module.exports = router;

@@ -1,0 +1,375 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
+import 'package:http/http.dart' as http;
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/config/app_config.dart';
+import '../../../core/theme/app_theme.dart';
+
+class CustomerBookingDetailScreen extends StatefulWidget {
+  final String bookingId;
+  const CustomerBookingDetailScreen({super.key, required this.bookingId});
+
+  @override
+  State<CustomerBookingDetailScreen> createState() =>
+      _CustomerBookingDetailScreenState();
+}
+
+class _CustomerBookingDetailScreenState
+    extends State<CustomerBookingDetailScreen> {
+  Map<String, dynamic>? _booking;
+  bool _loading = true;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Map<String, String> _headers() {
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    return {
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
+
+  Future<void> _load() async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+    try {
+      final res = await http.get(
+        Uri.parse('${AppConfig.apiBaseUrl}/bookings/${widget.bookingId}'),
+        headers: _headers(),
+      );
+      final body = jsonDecode(res.body) as Map<String, dynamic>;
+      if (!mounted) return;
+      if (res.statusCode == 200 && body['success'] == true) {
+        setState(() => _booking = body['booking'] as Map<String, dynamic>);
+      } else {
+        setState(
+            () => _error = body['message']?.toString() ?? 'Load nahi ho paya');
+      }
+    } catch (e) {
+      if (mounted) setState(() => _error = 'Network error: $e');
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Color _statusColor(String s) {
+    switch (s) {
+      case 'completed':
+        return AppTheme.success;
+      case 'cancelled':
+        return AppTheme.error;
+      case 'pending':
+        return AppTheme.warning;
+      default:
+        return AppTheme.primary;
+    }
+  }
+
+  String _statusLabel(String s) {
+    switch (s) {
+      case 'pending':
+        return 'Driver dhoondh rahe hain';
+      case 'driver_assigned':
+        return 'Driver mil gaya';
+      case 'started':
+        return 'Ride chal rahi hai';
+      case 'completed':
+        return 'Poori ho gayi';
+      case 'cancelled':
+        return 'Cancel ho gayi';
+      default:
+        return s;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppTheme.background,
+      appBar: AppBar(
+        title: const Text('Booking Details'),
+        actions: [
+          IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
+        ],
+      ),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _error != null
+              ? _errorView()
+              : _detailView(),
+    );
+  }
+
+  Widget _errorView() => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline,
+                  size: 56, color: AppTheme.error),
+              const SizedBox(height: 12),
+              Text(_error ?? 'Kuch gadbad ho gayi',
+                  textAlign: TextAlign.center),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                  onPressed: _load, child: const Text('Dobara try karo')),
+            ],
+          ),
+        ),
+      );
+
+  Widget _detailView() {
+    final b = _booking!;
+    final status = b['status']?.toString() ?? 'pending';
+    final paymentStatus = b['paymentStatus']?.toString() ?? 'pending';
+    final driverRaw = b['driverId'];
+    final Map<String, dynamic>? driver =
+        driverRaw is Map<String, dynamic> ? driverRaw : null;
+    final fare = b['finalFare'] ?? b['estimatedFare'];
+    final type = b['bookingType']?.toString() ?? '';
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _statusCard(status),
+          const SizedBox(height: 16),
+          _card('Trip', [
+            _row(Icons.my_location, 'Pickup',
+                b['pickup']?['address']?.toString() ?? '-'),
+            _row(Icons.location_on, 'Drop',
+                b['drop']?['address']?.toString() ?? '-'),
+            _row(Icons.calendar_today, 'Pickup time',
+                b['pickupTimeIST']?.toString() ?? '-'),
+            if ((b['distanceKm'] ?? 0) != 0)
+              _row(Icons.straighten, 'Distance', '${b['distanceKm']} km'),
+            if (b['localPackage'] != null)
+              _row(Icons.timer, 'Package', b['localPackage'].toString()),
+          ]),
+          const SizedBox(height: 12),
+          _card('Gaadi & Kiraya', [
+            _row(Icons.directions_car, 'Gaadi',
+                _vehicleLabel(b['vehicleType']?.toString() ?? '')),
+            _row(Icons.confirmation_number, 'Booking type',
+                _typeLabel(type)),
+            _row(Icons.currency_rupee, 'Fare',
+                fare != null ? '₹$fare' : 'Driver batayega'),
+            _row(Icons.payment, 'Payment', _paymentLabel(paymentStatus)),
+          ]),
+          if (driver != null) ...[
+            const SizedBox(height: 12),
+            _card('Driver', [
+              _row(Icons.person, 'Naam',
+                  driver['name']?.toString() ?? 'Driver'),
+              if (driver['phone'] != null)
+                _row(Icons.phone, 'Phone', driver['phone'].toString()),
+              if (driver['vehicleNumber'] != null)
+                _row(Icons.directions_car, 'Gaadi number',
+                    driver['vehicleNumber'].toString()),
+            ]),
+          ],
+          if (b['otp'] != null &&
+              (status == 'driver_assigned' || status == 'started')) ...[
+            const SizedBox(height: 12),
+            InkWell(
+              onTap: () => context.go('/ride-otp/${widget.bookingId}'),
+              borderRadius: BorderRadius.circular(14),
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppTheme.warning.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                      color: AppTheme.warning.withOpacity(0.4)),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.key, color: AppTheme.warning),
+                    SizedBox(width: 10),
+                    Expanded(
+                        child: Text('Ride OTP dekho — driver ko batana hai',
+                            style:
+                                TextStyle(fontWeight: FontWeight.w600))),
+                    Icon(Icons.arrow_forward_ios, size: 16),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 20),
+          if (paymentStatus == 'pending' && status != 'cancelled')
+            SizedBox(
+              height: 54,
+              child: ElevatedButton(
+                onPressed: () =>
+                    context.go('/payment/${widget.bookingId}'),
+                child: const Text('Pay Now',
+                    style:
+                        TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          if (status == 'completed') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 54,
+              child: OutlinedButton.icon(
+                onPressed: () =>
+                    context.go('/rating/${widget.bookingId}'),
+                icon: const Icon(Icons.star),
+                label: const Text('Ride ko rate karo'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppTheme.primary,
+                  side: const BorderSide(color: AppTheme.primary),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14)),
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 24),
+        ],
+      ),
+    );
+  }
+
+  Widget _statusCard(String status) => Container(
+        padding: const EdgeInsets.all(18),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.receipt_long,
+                color: Colors.white, size: 32),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Booking ${(_booking!['bookingNumber'] ?? '').toString()}',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15),
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: _statusColor(status),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _statusLabel(status),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+
+  Widget _card(String title, List<Widget> rows) => Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppTheme.surface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppTheme.border),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 15, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 10),
+            ...rows,
+          ],
+        ),
+      );
+
+  Widget _row(IconData icon, String label, String value) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 18, color: AppTheme.primary),
+            const SizedBox(width: 10),
+            SizedBox(
+              width: 90,
+              child: Text(label,
+                  style: TextStyle(
+                      color: AppTheme.textSecondary, fontSize: 13)),
+            ),
+            Expanded(
+              child: Text(value,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w600, fontSize: 13)),
+            ),
+          ],
+        ),
+      );
+
+  String _vehicleLabel(String v) {
+    switch (v) {
+      case 'hatchback':
+        return 'Hatchback';
+      case 'suv':
+        return 'SUV';
+      case 'innova':
+        return 'Innova';
+      default:
+        return 'Sedan';
+    }
+  }
+
+  String _typeLabel(String t) {
+    switch (t) {
+      case 'outstation':
+        return 'One Way';
+      case 'round_trip':
+        return 'Round Trip';
+      case 'local':
+        return 'Local';
+      case 'bid':
+        return 'Bid';
+      default:
+        return t;
+    }
+  }
+
+  String _paymentLabel(String p) {
+    switch (p) {
+      case 'cash':
+        return 'Cash — ho gaya';
+      case 'upi':
+        return 'UPI — ho gaya';
+      case 'refunded':
+        return 'Refund ho gaya';
+      default:
+        return 'Baaki hai';
+    }
+  }
+}
