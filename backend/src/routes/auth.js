@@ -51,8 +51,8 @@ const OTP_MAX_ATTEMPTS = 5;          // >5 wrong tries invalidates the OTP
 
 const sha256 = (s) => crypto.createHash("sha256").update(s).digest("hex");
 
-// SECURITY: crypto.randomInt, never Math.random.
-const generateOtp = () => String(crypto.randomInt(1000, 10000));
+// SECURITY: crypto.randomInt, never Math.random. 6 digits to match app UI.
+const generateOtp = () => String(crypto.randomInt(100000, 1000000));
 
 async function sendSmsViaFast2Sms(number10, otp) {
   const { status, data } = await axios.post(
