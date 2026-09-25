@@ -5,6 +5,7 @@ import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
+import "../../../core/widgets/premium.dart";
 
 class DriverWalletScreen extends StatefulWidget {
   const DriverWalletScreen({super.key});
@@ -103,89 +104,170 @@ class _DriverWalletScreenState extends State<DriverWalletScreen> {
   Widget _body() => ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          _balanceCard(),
+          Entrance(child: _balanceCard()),
           if (!_canAccept || _balance < 0) _blockedBanner(),
           const SizedBox(height: 20),
-          const Text("Transactions",
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 8),
+          const SectionTitle(title: 'Transactions'),
+          const SizedBox(height: 10),
           if (_txs.isEmpty)
-            const Card(
-              child: Padding(
-                padding: EdgeInsets.all(24),
-                child: Center(
-                    child: Text("Abhi koi transaction nahi hai",
-                        style: TextStyle(
-                            color: AppTheme.textSecondary))),
+            const Entrance(
+              delayMs: 120,
+              child: PremiumEmpty(
+                icon: Icons.receipt_long_rounded,
+                title: 'Abhi koi transaction nahi hai',
+                subtitle:
+                    'Commission, recharge aur trip earnings yahin dikhengi.',
               ),
             )
           else
-            ..._txs.map(_txTile),
+            ..._txs.asMap().entries.map(
+                  (e) => Entrance(
+                    delayMs: e.key * 60,
+                    child: _txTile(e.value),
+                  ),
+                ),
         ],
       );
 
   Widget _balanceCard() {
     final negative = _balance < 0;
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: negative
-            ? [const Color(0xFFB71C1C), const Color(0xFFE53935)]
-            : [const Color(0xFF0D47A1), const Color(0xFF1976D2)]),
-        borderRadius: BorderRadius.circular(16),
+        gradient: negative
+            ? const LinearGradient(
+                colors: [Color(0xFFB42318), Color(0xFFD92D20)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : AppTheme.heroGradient,
+        borderRadius: BorderRadius.circular(AppTheme.rLg),
+        boxShadow:
+            negative ? null : AppTheme.shadowBlue,
       ),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        const Row(children: [
-          Icon(Icons.account_balance_wallet,
-              color: Colors.white70, size: 20),
-          SizedBox(width: 8),
-          Text("Wallet Balance",
-              style: TextStyle(color: Colors.white70, fontSize: 13)),
-        ]),
-        const SizedBox(height: 8),
-        Text("Rs.${_balance.toStringAsFixed(0)}",
-            style: const TextStyle(
-                color: Colors.white,
-                fontSize: 36,
-                fontWeight: FontWeight.bold)),
-        const SizedBox(height: 12),
-        Row(children: [
-          Expanded(
-            child: ElevatedButton.icon(
-              onPressed: () => context.go("/driver/add-money"),
-              icon: const Icon(Icons.add),
-              label: const Text("Add Money"),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white,
-                foregroundColor: negative
-                    ? const Color(0xFFB71C1C)
-                    : AppTheme.primary,
+      child: Stack(
+        children: [
+          Positioned(
+            right: -30,
+            top: -30,
+            child: Container(
+              width: 130,
+              height: 130,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: Colors.white.withOpacity(0.08),
               ),
             ),
           ),
-        ]),
-      ]),
+          Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                        Icons.account_balance_wallet_rounded,
+                        color: Colors.white,
+                        size: 20),
+                  ),
+                  const SizedBox(width: 10),
+                  const Text("Wallet Balance",
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700)),
+                  const Spacer(),
+                  Pill(
+                    text: negative ? 'BLOCKED' : 'ACTIVE',
+                    color: negative
+                        ? AppTheme.error
+                        : AppTheme.success,
+                    bg: Colors.white,
+                    icon: negative
+                        ? Icons.block_rounded
+                        : Icons.check_circle_rounded,
+                  ),
+                ]),
+                const SizedBox(height: 14),
+                Text("Rs.${_balance.toStringAsFixed(0)}",
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1)),
+                const SizedBox(height: 4),
+                Text(
+                  negative
+                      ? 'Balance negative — pehle recharge karo.'
+                      : 'Bookings ke liye ready balance',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.75),
+                      fontSize: 12.5),
+                ),
+                const SizedBox(height: 16),
+                GestureDetector(
+                  onTap: () => context.go("/driver/add-money"),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(vertical: 13),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius:
+                          BorderRadius.circular(AppTheme.rMd),
+                      boxShadow: AppTheme.shadowSm,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.add_rounded,
+                            size: 18,
+                            color: negative
+                                ? AppTheme.error
+                                : AppTheme.primary),
+                        const SizedBox(width: 6),
+                        Text(
+                          "Add Money",
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                            color: negative
+                                ? AppTheme.error
+                                : AppTheme.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ]),
+        ],
+      ),
     );
   }
 
   Widget _blockedBanner() => Container(
         margin: const EdgeInsets.only(top: 12),
         padding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
         decoration: BoxDecoration(
-            color: AppTheme.error.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: AppTheme.error.withOpacity(0.4))),
+            color: AppTheme.errorSoft,
+            borderRadius:
+                BorderRadius.circular(AppTheme.rMd),
+            border:
+                Border.all(color: AppTheme.error.withOpacity(0.35))),
         child: const Row(children: [
-          Icon(Icons.block, color: AppTheme.error, size: 20),
-          SizedBox(width: 8),
+          Icon(Icons.block_rounded,
+              color: AppTheme.error, size: 20),
+          SizedBox(width: 10),
           Expanded(
               child: Text(
                   "Balance negative hai — bookings blocked! Paise add karo.",
                   style: TextStyle(
                       color: AppTheme.error,
-                      fontWeight: FontWeight.w600,
+                      fontWeight: FontWeight.w700,
                       fontSize: 13))),
         ]),
       );
@@ -196,35 +278,45 @@ class _DriverWalletScreenState extends State<DriverWalletScreen> {
     final amount = t["amount"]?.toString() ?? "0";
     final desc = (t["description"] ?? type).toString();
     final when = _fmtDate(t["createdAt"]);
-    return Card(
-      margin: const EdgeInsets.only(bottom: 8),
-      shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12)),
+    return PremiumCard(
+      padding: const EdgeInsets.all(6),
       child: ListTile(
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(9),
           decoration: BoxDecoration(
               color: (isCredit ? AppTheme.success : AppTheme.error)
                   .withOpacity(0.12),
-              shape: BoxShape.circle),
+              borderRadius: BorderRadius.circular(12)),
           child: Icon(
-              isCredit ? Icons.arrow_downward : Icons.arrow_upward,
+              isCredit
+                  ? Icons.arrow_downward_rounded
+                  : Icons.arrow_upward_rounded,
               size: 18,
               color: isCredit ? AppTheme.success : AppTheme.error),
         ),
         title: Text(desc,
             style: const TextStyle(
-                fontWeight: FontWeight.w600, fontSize: 14)),
+                fontWeight: FontWeight.w700, fontSize: 14)),
         subtitle: Text(when,
             style: const TextStyle(
                 fontSize: 11, color: AppTheme.textSecondary)),
-        trailing: Text(
-            "${isCredit ? "+" : "-"}Rs.$amount",
-            style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: isCredit
-                    ? AppTheme.success
-                    : AppTheme.error)),
+        trailing: Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: (isCredit ? AppTheme.success : AppTheme.error)
+                .withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Text(
+              "${isCredit ? "+" : "-"}Rs.$amount",
+              style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13.5,
+                  color: isCredit
+                      ? AppTheme.success
+                      : AppTheme.error)),
+        ),
       ),
     );
   }

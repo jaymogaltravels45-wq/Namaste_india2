@@ -301,46 +301,63 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
   Widget _headerCard() => Container(
         padding: const EdgeInsets.all(18),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0D47A1), Color(0xFF1976D2)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(16),
+          gradient: AppTheme.heroGradient,
+          borderRadius: BorderRadius.circular(AppTheme.rLg),
+          boxShadow: AppTheme.shadowBlue,
         ),
-        child: Row(
+        child: Stack(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(12),
+            Positioned(
+              right: -24,
+              top: -24,
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.gold.withOpacity(0.14),
+                ),
               ),
-              child: const Icon(Icons.directions_car,
-                  color: Colors.white, size: 28),
             ),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_title,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 4),
-                  Text(
-                    _kind == 'local'
-                        ? 'Sheher ke andar fixed package'
-                        : _kind == 'bid'
-                            ? 'Apna rate lagao, driver accept karega'
-                            : '100 km tak fixed, uske baad per-km',
-                    style: const TextStyle(
-                        color: Colors.white70, fontSize: 12),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: AppTheme.goldGradient,
+                    borderRadius: BorderRadius.circular(14),
+                    boxShadow: AppTheme.shadowGold,
                   ),
-                ],
-              ),
+                  child: const Icon(Icons.directions_car_rounded,
+                      color: Colors.white, size: 28),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(_title,
+                          style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.2)),
+                      const SizedBox(height: 4),
+                      Text(
+                        _kind == 'local'
+                            ? 'Sheher ke andar fixed package'
+                            : _kind == 'bid'
+                                ? 'Apna rate lagao, driver accept karega'
+                                : '100 km tak fixed, uske baad per-km',
+                        style: TextStyle(
+                            color:
+                                Colors.white.withOpacity(0.8),
+                            fontSize: 12),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ],
         ),

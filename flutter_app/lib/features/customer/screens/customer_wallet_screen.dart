@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/premium.dart';
 
 class CustomerWalletScreen extends StatelessWidget {
   const CustomerWalletScreen({super.key});
@@ -15,35 +16,40 @@ class CustomerWalletScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            _balanceCard(),
+            Entrance(child: _balanceCard()),
             const SizedBox(height: 16),
-            _infoCard(),
-            const SizedBox(height: 16),
-            const Text('Transactions',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 8),
-            _emptyTransactions(),
-            const SizedBox(height: 16),
+            Entrance(delayMs: 100, child: _infoCard()),
+            const SizedBox(height: 18),
+            const SectionTitle(title: 'Transactions'),
+            const SizedBox(height: 10),
+            Entrance(delayMs: 160, child: _emptyTransactions()),
+            const SizedBox(height: 18),
             Row(
               children: [
                 Expanded(
-                  child: ElevatedButton.icon(
+                  child: PremiumButton(
+                    label: 'Book a Ride',
+                    icon: Icons.add_rounded,
+                    height: 50,
                     onPressed: () => context.go('/customer/booking'),
-                    icon: const Icon(Icons.add),
-                    label: const Text('Book a Ride'),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => context.go('/customer/history'),
-                    icon: const Icon(Icons.history),
-                    label: const Text('Meri Trips'),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppTheme.primary,
-                      side: const BorderSide(color: AppTheme.primary),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(14)),
+                  child: SizedBox(
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: () => context.go('/customer/history'),
+                      icon: const Icon(Icons.history_rounded, size: 18),
+                      label: const Text('Meri Trips'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppTheme.primary,
+                        side: const BorderSide(
+                            color: AppTheme.primary, width: 1.5),
+                        shape: RoundedRectangleBorder(
+                            borderRadius:
+                                BorderRadius.circular(AppTheme.rMd)),
+                      ),
                     ),
                   ),
                 ),
@@ -59,84 +65,120 @@ class CustomerWalletScreen extends StatelessWidget {
   Widget _balanceCard() => Container(
         padding: const EdgeInsets.all(22),
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF0D47A1), Color(0xFF42A5F5)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-          borderRadius: BorderRadius.circular(18),
+          gradient: AppTheme.heroGradient,
+          borderRadius: BorderRadius.circular(AppTheme.rLg),
+          boxShadow: AppTheme.shadowBlue,
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            const Row(
-              children: [
-                Icon(Icons.account_balance_wallet,
-                    color: Colors.white70, size: 22),
-                SizedBox(width: 8),
-                Text('Namaste Wallet',
-                    style: TextStyle(color: Colors.white70, fontSize: 14)),
-              ],
+            Positioned(
+              right: -30,
+              top: -30,
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.gold.withOpacity(0.14),
+                ),
+              ),
             ),
-            const SizedBox(height: 12),
-            const Text('₹0',
-                style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 38,
-                    fontWeight: FontWeight.bold)),
-            const SizedBox(height: 6),
-            const Text(
-              'Customer ke liye wallet jald aa raha hai. Abhi ride ka payment Cash ya UPI se hota hai.',
-              style: TextStyle(color: Colors.white70, fontSize: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                          Icons.account_balance_wallet_rounded,
+                          color: Colors.white,
+                          size: 20),
+                    ),
+                    const SizedBox(width: 10),
+                    const Text('Namaste Wallet',
+                        style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700)),
+                    const Spacer(),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: AppTheme.gold.withOpacity(0.18),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: AppTheme.gold.withOpacity(0.4)),
+                      ),
+                      child: const Text(
+                        'PREMIUM',
+                        style: TextStyle(
+                          color: AppTheme.gold,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                const Text('Total Balance',
+                    style: TextStyle(
+                        color: Colors.white70, fontSize: 12.5)),
+                const SizedBox(height: 2),
+                const Text('₹0',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 42,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -1)),
+                const SizedBox(height: 8),
+                Text(
+                  'Customer ke liye wallet jald aa raha hai. Abhi ride ka payment Cash ya UPI se hota hai.',
+                  style: TextStyle(
+                      color: Colors.white.withOpacity(0.75),
+                      fontSize: 12,
+                      height: 1.5),
+                ),
+              ],
             ),
           ],
         ),
       );
 
-  Widget _infoCard() => Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: const Column(
+  Widget _infoCard() => PremiumCard(
+        child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+          children: const [
             Text('Payment kaise hota hai?',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14)),
+                style: TextStyle(
+                    fontWeight: FontWeight.w800, fontSize: 14.5)),
+            SizedBox(height: 12),
+            _InfoRow(
+                icon: Icons.money_rounded,
+                text: 'Cash — ride khatam hone pe driver ko de do'),
             SizedBox(height: 10),
             _InfoRow(
-                icon: Icons.money,
-                text: 'Cash — ride khatam hone pe driver ko de do'),
-            SizedBox(height: 8),
-            _InfoRow(
-                icon: Icons.qr_code,
+                icon: Icons.qr_code_rounded,
                 text: 'UPI — company ke QR pe direct payment'),
-            SizedBox(height: 8),
+            SizedBox(height: 10),
             _InfoRow(
-                icon: Icons.receipt,
+                icon: Icons.receipt_rounded,
                 text: 'Har payment booking detail me dikhega'),
           ],
         ),
       );
 
-  Widget _emptyTransactions() => Container(
-        padding: const EdgeInsets.all(28),
-        decoration: BoxDecoration(
-          color: AppTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: AppTheme.border),
-        ),
-        child: Column(
-          children: [
-            Icon(Icons.receipt_long_outlined,
-                size: 44, color: AppTheme.textSecondary.withOpacity(0.5)),
-            const SizedBox(height: 10),
-            Text('Abhi koi transaction nahi hai',
-                style: TextStyle(color: AppTheme.textSecondary)),
-          ],
-        ),
+  Widget _emptyTransactions() => const PremiumEmpty(
+        icon: Icons.receipt_long_rounded,
+        title: 'Abhi koi transaction nahi hai',
+        subtitle: 'Tumhari saari payments yahin dikhengi.',
       );
 }
 
@@ -148,9 +190,19 @@ class _InfoRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Row(
         children: [
-          Icon(icon, size: 18, color: AppTheme.primary),
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: AppTheme.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 17, color: AppTheme.primary),
+          ),
           const SizedBox(width: 10),
-          Expanded(child: Text(text, style: const TextStyle(fontSize: 13))),
+          Expanded(
+              child: Text(text,
+                  style: const TextStyle(
+                      fontSize: 13, color: AppTheme.textPrimary))),
         ],
       );
 }

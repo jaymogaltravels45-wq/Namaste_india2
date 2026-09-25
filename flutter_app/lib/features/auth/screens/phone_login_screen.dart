@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import '../../../services/auth/msg91_service.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/widgets/premium.dart';
 
 class PhoneLoginScreen extends StatefulWidget {
   final String role;
@@ -24,10 +25,12 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   }
 
   String? _validatePhone(String? val) {
-    if (val == null || val.isEmpty) return 'Phone number required';
+    if (val == null || val.isEmpty) return 'Phone number zaroori hai';
     final digits = val.replaceAll(' ', '');
-    if (digits.length != 10) return 'Enter a valid 10-digit number';
-    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(digits)) return 'Enter a valid Indian mobile number';
+    if (digits.length != 10) return 'Sahi 10-digit number daalo';
+    if (!RegExp(r'^[6-9]\d{9}$').hasMatch(digits)) {
+      return 'Sahi Indian mobile number daalo';
+    }
     return null;
   }
 
@@ -43,7 +46,6 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     if (!mounted) return;
 
     if (reqId != null) {
-      // Mock mode (testing): show the OTP that "arrived" so the tester can enter it.
       final mockOtp = Msg91Service.lastMockOtp;
       if (mockOtp != null && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -54,12 +56,13 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
           ),
         );
       }
-      context.push('/otp', extra: {'phone': phone, 'role': widget.role, 'reqId': reqId});
+      context.push('/otp',
+          extra: {'phone': phone, 'role': widget.role, 'reqId': reqId});
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Failed to send OTP. Please try again.'),
-          backgroundColor: Colors.red,
+          content: Text('OTP bhejne me problem hui. Dobara try karo.'),
+          backgroundColor: AppTheme.error,
         ),
       );
     }
@@ -68,144 +71,166 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final isDriver = widget.role == 'driver';
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
-        ),
-      ),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 28),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children:
-              [
-                const SizedBox(height: 16),
-
-                // Icon
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.12),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Icon(Icons.phone_android_rounded,
-                      color: AppTheme.primaryColor, size: 32),
-                ),
-                const SizedBox(height: 28),
-
-                Text(
-                  'Enter your\nphone number',
-                  style: theme.textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'We\'ll send a 6-digit OTP to verify your number.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
-                  ),
-                ),
-                const SizedBox(height: 40),
-
-                // Phone field
-                TextFormField(
-                  controller: _phoneCtrl,
-                  keyboardType: TextInputType.phone,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly,
-                    LengthLimitingTextInputFormatter(10),
-                  ],
-                  autofocus: true,
-                  validator: _validatePhone,
-                  style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600, letterSpacing: 2),
-                  decoration: InputDecoration(
-                    prefixText: '+91  ',
-                    prefixStyle: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.primaryColor,
-                    ),
-                    hintText: '98765 43210',
-                    hintStyle: TextStyle(color: Colors.grey[400], letterSpacing: 2),
-                    filled: true,
-                    fillColor: Colors.grey[100],
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide.none,
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: AppTheme.primaryColor, width: 2),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: const BorderSide(color: Colors.red, width: 1.5),
-                    ),
-                  ),
-                ),
-
-                const Spacer(),
-
-                // Send OTP button
-                SizedBox(
-                  width: double.infinity,
-                  height: 54,
-                  child: ElevatedButton(
-                    onPressed: _loading ? null : _sendOtp,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryColor,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      elevation: 0,
-                    ),
-                    child: _loading
-                        ? const SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2.5,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Text(
-                            'Send OTP',
-                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+      backgroundColor: AppTheme.background,
+      body: Column(
+        children: [
+          PremiumHeader(
+            title: isDriver ? 'Driver Login' : 'Welcome back',
+            subtitle: 'OTP se secure login',
+            height: 170,
+          ),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Overlapping card
+                    Transform.translate(
+                      offset: const Offset(0, -34),
+                      child: Entrance(
+                        child: PremiumCard(
+                          padding: const EdgeInsets.all(22),
+                          shadows: AppTheme.shadowMd,
+                          child: Column(
+                            crossAxisAlignment:
+                                CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 48,
+                                    height: 48,
+                                    decoration: BoxDecoration(
+                                      gradient: AppTheme.blueGradient,
+                                      borderRadius:
+                                          BorderRadius.circular(14),
+                                    ),
+                                    child: const Icon(
+                                      Icons.phone_android_rounded,
+                                      color: Colors.white,
+                                      size: 26,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Mobile Number',
+                                          style: theme
+                                              .textTheme.titleMedium,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          '6-digit OTP bhejenge',
+                                          style: theme
+                                              .textTheme.bodyMedium
+                                              ?.copyWith(fontSize: 12.5),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 20),
+                              TextFormField(
+                                controller: _phoneCtrl,
+                                keyboardType: TextInputType.phone,
+                                inputFormatters: [
+                                  FilteringTextInputFormatter
+                                      .digitsOnly,
+                                  LengthLimitingTextInputFormatter(10),
+                                ],
+                                autofocus: true,
+                                validator: _validatePhone,
+                                style: const TextStyle(
+                                  fontSize: 21,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 3,
+                                ),
+                                decoration: InputDecoration(
+                                  prefixText: '+91  ',
+                                  prefixStyle: const TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppTheme.primary,
+                                  ),
+                                  hintText: '98765 43210',
+                                  hintStyle: const TextStyle(
+                                    color: AppTheme.textTertiary,
+                                    letterSpacing: 3,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                  filled: true,
+                                  fillColor: AppTheme.surfaceTint,
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(
+                                        AppTheme.rMd),
+                                    borderSide: BorderSide.none,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                  ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Entrance(
+                      delayMs: 120,
+                      child: Row(
+                        children: const [
+                          Icon(Icons.lock_rounded,
+                              size: 14,
+                              color: AppTheme.success),
+                          SizedBox(width: 6),
+                          Expanded(
+                            child: Text(
+                              'Tumhara number encrypted rehta hai — kabhi share nahi hota.',
+                              style: TextStyle(
+                                fontSize: 12.5,
+                                color: AppTheme.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Entrance(
+                      delayMs: 200,
+                      child: PremiumButton(
+                        label: 'Send OTP',
+                        icon: Icons.sms_rounded,
+                        loading: _loading,
+                        onPressed: _sendOtp,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        'Continue karke aap Terms & Privacy Policy se\nsehamat hote ho.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: AppTheme.textTertiary,
+                            height: 1.5),
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 16),
-
-                Center(
-                  child: Text(
-                    'By continuing, you agree to our Terms & Privacy Policy.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(fontSize: 12, color: Colors.grey[500]),
-                  ),
-                ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

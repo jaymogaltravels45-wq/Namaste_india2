@@ -1,6 +1,7 @@
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "../../../core/l10n/app_strings.dart";
+import "../../../core/theme/app_theme.dart";
 
 /// 2026-style customer home: 3D tilt trip cards, staggered entrance,
 /// glowing gradients and a premium hero header.
@@ -47,7 +48,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
 
   @override
   Widget build(BuildContext context) => Scaffold(
-        backgroundColor: const Color(0xFFF2F5FA),
+        backgroundColor: AppTheme.background,
         body: ValueListenableBuilder<String>(
           valueListenable: AppLang.current,
           builder: (_, __, ___) => CustomScrollView(
@@ -63,15 +64,11 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
   SliverAppBar _hero(BuildContext ctx) => SliverAppBar(
         expandedHeight: 215,
         pinned: true,
-        backgroundColor: const Color(0xFF1A237E),
+        backgroundColor: AppTheme.primaryDeep,
         flexibleSpace: FlexibleSpaceBar(
           background: Container(
             decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                colors: [Color(0xFF1A237E), Color(0xFF3949AB), Color(0xFF1E88E5)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+              gradient: AppTheme.heroGradient,
             ),
             child: Stack(
               children: [
@@ -84,7 +81,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 Positioned(
                   left: -30,
                   bottom: -50,
-                  child: _blob(130, Colors.white.withOpacity(0.06)),
+                  child: _blob(130, AppTheme.gold.withOpacity(0.10)),
                 ),
                 SafeArea(
                   child: Padding(
@@ -387,14 +384,9 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(14),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 3)),
-              ],
+              boxShadow: AppTheme.shadowSm,
             ),
-            child: Icon(i, color: const Color(0xFF3949AB), size: 22),
+            child: Icon(i, color: AppTheme.primary, size: 22),
           ),
           const SizedBox(height: 6),
           Text(l,
@@ -417,7 +409,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
           elevation: 0,
-          selectedItemColor: const Color(0xFF3949AB),
+          selectedItemColor: AppTheme.primary,
           unselectedItemColor: Colors.grey,
           currentIndex: 0,
           onTap: (i) {
