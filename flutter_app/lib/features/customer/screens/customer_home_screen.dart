@@ -113,7 +113,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.3)),
                             const Spacer(),
-                            _iconBtn(Icons.notifications_outlined, () {}),
+                            _iconBtn(Icons.notifications_outlined, () => ctx.go("/customer/notifications")),
                             const SizedBox(width: 8),
                             _iconBtn(Icons.wallet_outlined,
                                 () => ctx.go("/customer/wallet")),
@@ -306,6 +306,66 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                 ),
               );
             },
+          ),
+          const SizedBox(height: 18),
+          // Available Cars & Drivers (PDF P23) — online drivers dekho
+          FadeTransition(
+            opacity: _fade(3),
+            child: SlideTransition(
+              position: _slide(3),
+              child: GestureDetector(
+                onTap: () => ctx.go("/customer/cars"),
+                child: Container(
+                  padding: const EdgeInsets.all(18),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [
+                      Color(0xFF00695C),
+                      Color(0xFF26A69A)
+                    ]),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF26A69A).withOpacity(0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(15),
+                        ),
+                        child: const Icon(Icons.directions_car,
+                            color: Colors.white, size: 28),
+                      ),
+                      const SizedBox(width: 14),
+                      const Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text("Available Cars",
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                    fontSize: 16)),
+                            SizedBox(height: 4),
+                            Text("Online drivers dekho, seedha Hire karo",
+                                style: TextStyle(
+                                    color: Colors.white70, fontSize: 12)),
+                          ],
+                        ),
+                      ),
+                      const Icon(Icons.arrow_forward_ios,
+                          color: Colors.white, size: 18),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 18),
           FadeTransition(

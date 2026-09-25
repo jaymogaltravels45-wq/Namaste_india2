@@ -9,7 +9,8 @@ import '../../booking/widgets/map_location_picker.dart';
 
 class CustomerBookingScreen extends StatefulWidget {
   final String? type;
-  const CustomerBookingScreen({super.key, this.type});
+  final String? vehicleType;
+  const CustomerBookingScreen({super.key, this.type, this.vehicleType});
 
   @override
   State<CustomerBookingScreen> createState() => _CustomerBookingScreenState();
@@ -32,6 +33,14 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
 
   static const _vehicles = ['hatchback', 'sedan', 'suv', 'innova'];
   static const _packages = ['4h/40km', '8h/80km', '12h/120km'];
+
+  @override
+  void initState() {
+    super.initState();
+    // Available Cars se aaye ho to gaadi pehle se chuni hui
+    final v = widget.vehicleType;
+    if (v != null && _vehicles.contains(v)) _vehicle = v;
+  }
 
   String get _kind => widget.type ?? 'outstation';
   String get _backendType => _kind == 'round' ? 'round_trip' : _kind;

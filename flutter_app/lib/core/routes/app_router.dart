@@ -16,6 +16,8 @@ import '../../features/customer/screens/customer_sos_screen.dart';
 import '../../features/customer/screens/customer_support_screen.dart';
 import '../../features/customer/screens/customer_settings_screen.dart';
 import '../../features/customer/screens/customer_offers_screen.dart';
+import '../../features/customer/screens/customer_notifications_screen.dart';
+import '../../features/customer/screens/available_cars_screen.dart';
 import '../../features/driver/screens/driver_home_screen.dart';
 import '../../features/driver/screens/driver_new_requests_screen.dart';
 import '../../features/driver/screens/driver_bid_detail_screen.dart';
@@ -31,6 +33,7 @@ import '../../features/driver/screens/post_requirement_screen.dart';
 import '../../features/driver/screens/driver_offers_screen.dart';
 import '../../features/driver/screens/driver_support_screen.dart';
 import '../../features/driver/screens/driver_settings_screen.dart';
+import '../../features/driver/screens/driver_notifications_screen.dart';
 import '../../features/admin/screens/admin_login_screen.dart';
 import '../../features/admin/screens/admin_dashboard_screen.dart';
 import '../../features/admin/screens/admin_users_screen.dart';
@@ -68,7 +71,7 @@ class AppRouter {
         return OtpScreen(phone: m['phone']?.toString() ?? '', role: m['role']?.toString() ?? 'customer', reqId: m['reqId']?.toString() ?? '');
       }),
       GoRoute(path: '/customer',           builder: (_, __) => const CustomerHomeScreen()),
-      GoRoute(path: '/customer/booking',   builder: (_, s) => CustomerBookingScreen(type: (s.extra as Map?)?['type']?.toString())),
+      GoRoute(path: '/customer/booking',   builder: (_, s) => CustomerBookingScreen(type: (s.extra as Map?)?['type']?.toString(), vehicleType: (s.extra as Map?)?['vehicleType']?.toString())),
       GoRoute(path: '/customer/booking/:id', builder: (_, s) => CustomerBookingDetailScreen(bookingId: s.pathParameters['id']!)),
       GoRoute(path: '/customer/history',   builder: (_, __) => const CustomerBookingHistoryScreen()),
       GoRoute(path: '/customer/wallet',    builder: (_, __) => const CustomerWalletScreen()),
@@ -77,6 +80,8 @@ class AppRouter {
       GoRoute(path: '/customer/support',   builder: (_, __) => const CustomerSupportScreen()),
       GoRoute(path: '/customer/settings',  builder: (_, __) => const CustomerSettingsScreen()),
       GoRoute(path: '/customer/offers',    builder: (_, __) => const CustomerOffersScreen()),
+      GoRoute(path: '/customer/notifications', builder: (_, __) => const CustomerNotificationsScreen()),
+      GoRoute(path: '/customer/cars', builder: (_, __) => const AvailableCarsScreen()),
       GoRoute(path: '/driver',             builder: (_, __) => const DriverHomeScreen()),
       GoRoute(path: '/driver/requests',    builder: (_, __) => const DriverNewRequestsScreen()),
       GoRoute(path: '/driver/bid/:id',     builder: (_, s) => DriverBidDetailScreen(bookingId: s.pathParameters['id']!)),
@@ -92,6 +97,7 @@ class AppRouter {
       GoRoute(path: '/driver/offers/:id',  builder: (_, s) => DriverOffersScreen(bookingId: s.pathParameters['id']!)),
       GoRoute(path: '/driver/support',     builder: (_, __) => const DriverSupportScreen()),
       GoRoute(path: '/driver/settings',    builder: (_, __) => const DriverSettingsScreen()),
+      GoRoute(path: '/driver/notifications', builder: (_, __) => const DriverNotificationsScreen()),
       GoRoute(path: '/admin',              builder: (_, __) => const AdminLoginScreen()),
       GoRoute(path: '/admin/dashboard',    builder: (_, __) => const AdminDashboardScreen()),
       GoRoute(path: '/admin/users',        builder: (_, __) => const AdminUsersScreen()),

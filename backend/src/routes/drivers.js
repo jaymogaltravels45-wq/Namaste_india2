@@ -10,6 +10,30 @@ const validPhone = (p) => /^\+91[6-9]\d{9}$/.test(fmtPhone(p));
 // ─── Driver onboarding / KYC registration ───────────────────────────────────
 // Creates the Driver document linked to the caller's Supabase UUID.
 // kycStatus starts "pending"; an admin verifies it before the driver can earn.
+// ─── Public: online drivers for "Available Cars & Drivers" ─────────────────
+// No auth: customers browse before login. Only safe public fields exposed.
+router.get("/online", async (req, res) => {
+  try {
+    const { vehicleType } = req.query || {};
+    const q = { isOnline: true, kycStatus: "verified" };
+    if (vehicleType && VEHICLE_TYPES.includes(vehicleType)) q.vehicleType = vehicleType;
+    const drivers = await Driver.find(q)
+      .sort({ rating: -1 }).limit(40)
+      .select("name vehicleType vehicleModel rating totalTrips")
+      .lean();
+    const list = drivers.map((d) => ({
+      id: d._id,
+      // Privacy: sirf pehla naam dikhao
+      name: String(d.name || "Driver").trim().split(/\s+/)[0],
+      vehicleType: d.vehicleType,
+      vehicleModel: d.vehicleModel || "",
+      rating: d.rating || 0,
+      totalTrips: d.totalTrips || 0,
+    }));
+    res.json({ success: true, drivers: list });
+  } catch (e) { res.status(500).json({ success: false, message: e.message }); }
+});
+
 router.post("/register", authMiddleware, async (req, res) => {
   try {
     const { name, phone, vehicleType, vehicleNumber, vehicleModel, licenseNumber } = req.body || {};

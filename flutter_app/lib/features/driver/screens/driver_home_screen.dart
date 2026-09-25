@@ -359,6 +359,25 @@ class _State extends State<DriverHomeScreen> {
                           ),
                         ),
                         GestureDetector(
+                          onTap: () => ctx.go("/driver/notifications"),
+                          child: Container(
+                            padding: const EdgeInsets.all(9),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.14),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: Colors.white.withOpacity(0.22),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.notifications_outlined,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        GestureDetector(
                           onTap: () => ctx.go("/driver/wallet"),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
