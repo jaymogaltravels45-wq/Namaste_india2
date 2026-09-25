@@ -1,8 +1,12 @@
+import "dart:convert";
 import "package:flutter/material.dart";
 import "package:go_router/go_router.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:latlong2/latlong.dart";
 import "package:geolocator/geolocator.dart";
+import "package:http/http.dart" as http;
+import "package:supabase_flutter/supabase_flutter.dart";
+import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
 import "../../../core/widgets/premium.dart";
 
@@ -15,13 +19,17 @@ class DriverHomeScreen extends StatefulWidget {
 }
 
 class _State extends State<DriverHomeScreen> {
-  double _balance = 150.0; // TODO: fetch from API
+  double _balance = 0;
   bool _online = false;
-  double _todayEarnings = 2450.0; // TODO: fetch from API
-  int _todayTrips = 6; // TODO: fetch from API
+  bool _canBook = true;
+  double _todayEarnings = 0;
+  int _todayTrips = 0;
+  String _rating = '—';
   List<Map<String, dynamic>> _requests = [];
-
-  bool get _canBook => _balance >= 0;
+  bool _loading = true;
+  String? _error; // 'not_registered' | 'load_failed' | null
+  bool _toggling = false;
+  String? _acceptingId;
 
   @override
   void initState() {
@@ -29,24 +37,202 @@ class _State extends State<DriverHomeScreen> {
     _loadData();
   }
 
-  void _loadData() {
-    // TODO: Replace with real API: GET /api/drivers/wallet
-    setState(() {
-      if (_canBook) {
-        _requests = [
-          {
-            "id": "BK001",
-            "from": "Ahmedabad",
-            "to": "Vadodara",
-            "dist": "110 KM",
-            "amt": "Rs.1,620",
-            "vehicle": "Sedan",
-            "pickup_time": "10:30 AM", // TIME BUG FIX: from server DB
-            "type": "outstation",
-          }
-        ];
-      }
+  Future<Map<String, String>> _headers() async {
+    final token = Supabase.instance.client.auth.currentSession?.accessToken;
+    return {
+      "Content-Type": "application/json",
+      if (token != null) "Authorization": "Bearer $token",
+    };
+  }
+
+  String _msgOf(http.Response res, String fallback) {
+    try {
+      final b = jsonDecode(res.body);
+      if (b is Map && b["message"] != null) return b["message"].toString();
+    } catch (_) {}
+    return '$fallback (${res.statusCode})';
+  }
+
+  void _snack(String msg, {bool error = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: error ? AppTheme.error : AppTheme.success,
+      behavior: SnackBarBehavior.floating,
+    ));
+  }
+
+  /// Wallet + profile + nayi requests + aaj ki kamai — sab asli server se.
+  Future<void> _loadData() async {
+    if (mounted) setState(() {
+      _loading = true;
+      _error = null;
     });
+    try {
+      final h = await _headers();
+      final base = AppConfig.apiBaseUrl;
+      final results = await Future.wait([
+        http.get(Uri.parse("$base/drivers/wallet"), headers: h),
+        http.get(Uri.parse("$base/drivers/profile"), headers: h),
+        http.get(Uri.parse("$base/bookings/available"), headers: h),
+        http.get(Uri.parse("$base/bookings/driver/my"), headers: h),
+      ]);
+      if (!mounted) return;
+      final walletRes = results[0];
+      final profileRes = results[1];
+      final availRes = results[2];
+      final myRes = results[3];
+
+      if (walletRes.statusCode == 404) {
+        // Driver abhi register nahi hai -> KYC/register screen pe bhejo
+        setState(() {
+          _loading = false;
+          _error = 'not_registered';
+        });
+        return;
+      }
+      if (walletRes.statusCode != 200) throw Exception('wallet ${walletRes.statusCode}');
+
+      final w = jsonDecode(walletRes.body) as Map<String, dynamic>;
+      final rawBal = w["balance"];
+      final bal = rawBal is num ? rawBal.toDouble() : 0.0;
+      final canBook = w["canAcceptBookings"] == true || bal >= 0;
+
+      var online = false;
+      var rating = '—';
+      if (profileRes.statusCode == 200) {
+        final p = jsonDecode(profileRes.body) as Map<String, dynamic>;
+        final d = p["driver"] is Map ? Map<String, dynamic>.from(p["driver"]) : null;
+        online = d?["isOnline"] == true;
+        if (d?["rating"] != null) rating = d!["rating"].toString();
+      }
+
+      var reqs = <Map<String, dynamic>>[];
+      if (availRes.statusCode == 200) {
+        final a = jsonDecode(availRes.body) as Map<String, dynamic>;
+        final raw = (a["bookings"] as List?) ?? [];
+        reqs = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+      }
+
+      // Aaj ki kamai: aaj complete hui bookings ka jod
+      var earn = 0.0;
+      var trips = 0;
+      if (myRes.statusCode == 200) {
+        final m = jsonDecode(myRes.body) as Map<String, dynamic>;
+        final raw = (m["bookings"] as List?) ?? [];
+        final now = DateTime.now();
+        for (final e in raw) {
+          final b = Map<String, dynamic>.from(e as Map);
+          if (b["status"]?.toString() != "completed") continue;
+          DateTime? done;
+          try {
+            final t = (b["endTime"] ?? b["updatedAt"])?.toString();
+            if (t != null) done = DateTime.parse(t).toLocal();
+          } catch (_) {}
+          if (done != null &&
+              done.year == now.year &&
+              done.month == now.month &&
+              done.day == now.day) {
+            trips++;
+            final f = b["finalFare"] ?? b["estimatedFare"];
+            if (f is num) earn += f.toDouble();
+          }
+        }
+      }
+
+      setState(() {
+        _balance = bal;
+        _canBook = canBook;
+        _online = online;
+        _rating = rating;
+        _requests = reqs;
+        _todayEarnings = earn;
+        _todayTrips = trips;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _loading = false;
+        _error = 'load_failed';
+      });
+    }
+  }
+
+  Future<void> _setOnline(bool v) async {
+    if (_toggling) return;
+    if (v && !_canBook) {
+      _snack('Pehle wallet recharge karo', error: true);
+      return;
+    }
+    setState(() => _toggling = true);
+    try {
+      final res = await http.patch(
+        Uri.parse("${AppConfig.apiBaseUrl}/drivers/status"),
+        headers: await _headers(),
+        body: jsonEncode({"isOnline": v}),
+      );
+      if (!mounted) return;
+      if (res.statusCode == 200) {
+        setState(() {
+          _online = v;
+          _toggling = false;
+        });
+        _snack(v ? 'Tum online ho — requests aayengi' : 'Tum offline ho');
+        if (v) _loadData();
+      } else {
+        setState(() => _toggling = false);
+        _snack(_msgOf(res, 'Status badal nahi paya'), error: true);
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _toggling = false);
+      _snack('Network error', error: true);
+    }
+  }
+
+  Future<void> _acceptBooking(String id) async {
+    if (_acceptingId != null) return;
+    setState(() => _acceptingId = id);
+    try {
+      final res = await http.post(
+        Uri.parse("${AppConfig.apiBaseUrl}/bookings/$id/accept"),
+        headers: await _headers(),
+      );
+      if (!mounted) return;
+      setState(() => _acceptingId = null);
+      if (res.statusCode == 200) {
+        _snack('Booking accept ho gayi!');
+        context.go("/driver/my-booking/$id");
+      } else {
+        _snack(_msgOf(res, 'Accept nahi ho payi'), error: true);
+        _loadData(); // list refresh — shayad kisi aur ne le li
+      }
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _acceptingId = null);
+      _snack('Network error', error: true);
+    }
+  }
+
+  /// Server ki booking -> request card ka data
+  Map<String, dynamic> _cardOf(Map<String, dynamic> b) {
+    final pickup = b["pickup"] is Map ? Map<String, dynamic>.from(b["pickup"]) : {};
+    final drop = b["drop"] is Map ? Map<String, dynamic>.from(b["drop"]) : {};
+    final fare = b["estimatedFare"] ?? b["finalFare"] ?? 0;
+    var time = 'N/A';
+    final t = (b["pickupTimeIST"] ?? b["pickupTime"])?.toString() ?? '';
+    if (t.isNotEmpty) time = t.length > 18 ? t.substring(0, 18) : t;
+    return {
+      "id": b["_id"]?.toString() ?? "",
+      "from": (pickup["address"] ?? "").toString(),
+      "to": (drop["address"] ?? "").toString(),
+      "dist": "${b["distanceKm"] ?? 0} KM",
+      "amt": "Rs.$fare",
+      "vehicle": (b["vehicleType"] ?? "").toString(),
+      "pickup_time": time,
+      "status": (b["status"] ?? "").toString(),
+    };
   }
 
   @override
@@ -56,16 +242,40 @@ class _State extends State<DriverHomeScreen> {
           body: Column(
             children: [
               _hero(ctx),
-              if (!_canBook) _negativeBanner(),
-              Expanded(
-                child: _canBook && _requests.isNotEmpty
-                    ? _list()
-                    : _emptyView(),
-              ),
+              if (!_canBook && !_loading) _negativeBanner(),
+              Expanded(child: _bodyContent()),
             ],
           ),
         ),
       );
+
+  Widget _bodyContent() {
+    if (_loading) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2.5));
+    }
+    if (_error == 'not_registered') {
+      // Driver ka record server pe nahi — KYC/register karwao
+      return PremiumEmpty(
+        icon: Icons.badge_rounded,
+        title: 'Driver registration baaki hai',
+        subtitle:
+            'Requests pane se pehle apni gaadi aur license ki details poori karo.',
+        ctaLabel: 'Registration Karo',
+        onCta: () => context.go('/driver/kyc'),
+      );
+    }
+    if (_error == 'load_failed') {
+      return PremiumEmpty(
+        icon: Icons.cloud_off_rounded,
+        title: 'Data load nahi hua',
+        subtitle: 'Internet check karo aur dobara koshish karo.',
+        ctaLabel: 'Dobara Koshish Karo',
+        onCta: _loadData,
+      );
+    }
+    if (_requests.isNotEmpty) return _list();
+    return _emptyView();
+  }
 
   Widget _hero(BuildContext ctx) => Container(
         decoration: const BoxDecoration(
@@ -253,10 +463,9 @@ class _State extends State<DriverHomeScreen> {
                             scale: 1.1,
                             child: Switch(
                               value: _online && _canBook,
-                              onChanged: _canBook
-                                  ? (v) =>
-                                      setState(() => _online = v)
-                                  : null,
+                              onChanged: _toggling
+                                  ? null
+                                  : (_canBook ? (v) => _setOnline(v) : null),
                               activeColor: AppTheme.success,
                               activeTrackColor: AppTheme.success
                                   .withOpacity(0.4),
@@ -291,7 +500,7 @@ class _State extends State<DriverHomeScreen> {
                         Expanded(
                           child: _statCard(
                             Icons.star_rounded,
-                            '4.8',
+                            _rating,
                             'Rating',
                           ),
                         ),
@@ -389,27 +598,44 @@ class _State extends State<DriverHomeScreen> {
         ),
       );
 
-  Widget _list() => ListView(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
-        children: [
-          const Entrance(delayMs: 0, child: _LiveMapCard()),
-          const SizedBox(height: 14),
-          const SectionTitle(title: 'Nayi Requests'),
-          const SizedBox(height: 10),
-          ..._requests.asMap().entries.map(
-                (e) => Entrance(
-                  delayMs: e.key * 120,
-                  child: _RequestCard(
-                    data: e.value,
-                    onAccept: () => context.go(
-                        "/driver/my-booking/${e.value["id"]}"),
-                    onDecline: () =>
-                        setState(() => _requests.removeAt(e.key)),
+  Widget _list() => RefreshIndicator(
+        onRefresh: _loadData,
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+          children: [
+            const Entrance(delayMs: 0, child: _LiveMapCard()),
+            const SizedBox(height: 14),
+            const SectionTitle(title: 'Nayi Requests'),
+            const SizedBox(height: 10),
+            ..._requests.asMap().entries.map(
+                  (e) => Entrance(
+                    delayMs: e.key * 120,
+                    child: _requestTile(e.key, e.value),
                   ),
                 ),
-              ),
-        ],
+          ],
+        ),
       );
+
+  Widget _requestTile(int index, Map<String, dynamic> booking) {
+    final data = _cardOf(booking);
+    final id = data["id"] as String;
+    final isBidding = data["status"] == "open_for_bids";
+    final accepting = _acceptingId == id;
+    return _RequestCard(
+      data: data,
+      acceptLabel: isBidding ? 'Bid Lagao' : 'Accept',
+      busy: accepting,
+      onAccept: () {
+        if (isBidding) {
+          context.go("/driver/bid/$id");
+        } else {
+          _acceptBooking(id);
+        }
+      },
+      onDecline: () => setState(() => _requests.removeAt(index)),
+    );
+  }
 
   Widget _emptyView() => PremiumEmpty(
         icon: _online
@@ -417,12 +643,10 @@ class _State extends State<DriverHomeScreen> {
             : Icons.power_settings_new_rounded,
         title: _online ? 'Nayi request ka intezaar' : 'Tum offline ho',
         subtitle: _online
-            ? 'Jaise hi koi booking aayegi, yahin dikhegi.'
+            ? 'Jaise hi koi booking aayegi, yahin dikhegi. Neeche kheench ke refresh bhi kar sakte ho.'
             : 'Online jao taaki trip requests milna shuru hon.',
-        ctaLabel: _online ? null : 'Online Jao',
-        onCta: _online
-            ? null
-            : (_canBook ? () => setState(() => _online = true) : null),
+        ctaLabel: _online ? 'Refresh Karo' : 'Online Jao',
+        onCta: _online ? _loadData : (_canBook ? () => _setOnline(true) : null),
       );
 }
 
@@ -573,8 +797,15 @@ class _LiveMapCardState extends State<_LiveMapCard> {
 class _RequestCard extends StatelessWidget {
   final Map<String, dynamic> data;
   final VoidCallback onAccept, onDecline;
-  const _RequestCard(
-      {required this.data, required this.onAccept, required this.onDecline});
+  final String acceptLabel;
+  final bool busy;
+  const _RequestCard({
+    required this.data,
+    required this.onAccept,
+    required this.onDecline,
+    this.acceptLabel = 'Accept',
+    this.busy = false,
+  });
 
   @override
   Widget build(BuildContext ctx) {
@@ -680,7 +911,7 @@ class _RequestCard extends StatelessWidget {
                     ],
                   ),
                   child: ElevatedButton(
-                    onPressed: onAccept,
+                    onPressed: busy ? null : onAccept,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Colors.transparent,
                       shadowColor: Colors.transparent,
@@ -692,10 +923,19 @@ class _RequestCard extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(
                           vertical: 13),
                     ),
-                    child: const Text('Accept',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 15)),
+                    child: busy
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              color: Colors.white,
+                            ),
+                          )
+                        : Text(acceptLabel,
+                            style: const TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15)),
                   ),
                 ),
               ),
