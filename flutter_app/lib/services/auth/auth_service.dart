@@ -14,7 +14,7 @@ class AuthService {
     required String accessToken,
     required String refreshToken,
   }) async {
-    await _sb.auth.setSession(accessToken, refreshToken);
+    await _sb.auth.setSession(refreshToken, accessToken: accessToken);
   }
 
   /// Current logged-in user, or null.
