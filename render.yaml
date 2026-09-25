@@ -1,0 +1,34 @@
+# ─── Render deployment (Infrastructure as Code) ──────────────────
+# Render dashboard → New → Blueprint → is repo ko select karo.
+# Env vars me "sync: false" wali values dashboard me khud bharni hongi
+# (secrets kabhi code/repo me nahi aate).
+
+services:
+  - type: web
+    name: namaste-india-backend
+    runtime: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      # ── Secrets: Render dashboard me Environment tab me set karo ──
+      - key: MONGODB_URI
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: MSG91_AUTH_TOKEN
+        sync: false
+      - key: MSG91_WIDGET_ID
+        sync: false
+      - key: USER_SALT
+        generateValue: true
+      # ── Optional (baad me) ──
+      - key: FRONTEND_URL
+        sync: false
+      - key: COMPANY_UPI_ID
+        sync: false
