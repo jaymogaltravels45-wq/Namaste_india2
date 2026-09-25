@@ -19,7 +19,8 @@ const s = new mongoose.Schema({
   distanceKm:    { type: Number, default: 0 },
   localPackage:  { type: String, enum: ["4h/40km","8h/80km","12h/120km"] },
   estimatedFare: Number, finalFare: Number,
-  status:        { type: String, enum: ["pending","driver_assigned","started","completed","cancelled"], default: "pending" },
+  customerBid:   Number, // customer's own bid amount for bookingType "bid"
+  status:        { type: String, enum: ["pending","driver_assigned","open_for_bids","confirmed","arrived","ongoing","started","completed","cancelled"], default: "pending" },
   paymentStatus: { type: String, enum: ["pending","cash","upi","refunded"], default: "pending" },
   paymentMethod: { type: String, enum: ["cash","upi"] },
   upiTransactionId: String,
@@ -29,6 +30,9 @@ const s = new mongoose.Schema({
     status: { type: String, enum: ["pending","accepted","rejected"], default: "pending" },
   }],
   otp: String, notes: String,
+  // Ride Start OTP (4-digit): only the SHA256 hash is persisted; the plain
+  // OTP lives transiently in the server-side rideOtpStore until expiry.
+  rideOtpHash: String, rideOtpExpires: Date,
   rating: { type: Number, min: 1, max: 5 }, review: String,
   assignedByDriverId: { type: String }, // Supabase UUID
 }, { timestamps: true });

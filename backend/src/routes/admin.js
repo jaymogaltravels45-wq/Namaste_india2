@@ -14,7 +14,7 @@ router.use(authMiddleware, adminOnly);
 
 const validId = (id) => mongoose.Types.ObjectId.isValid(id);
 const KYC_STATUSES = ["pending", "verified", "rejected"];
-const WALLET_TYPES = ["credit", "debit", "penalty", "refund"];
+const WALLET_TYPES = ["credit", "debit", "penalty", "refund", "commission", "subscription"];
 
 router.get("/dashboard", async (req, res) => {
   try {

@@ -15,6 +15,7 @@ const s = new mongoose.Schema({
   location:     { type: { type: String, default: "Point" }, coordinates: { type: [Number], default: [0,0] } },
   rating:       { type: Number, default: 0 },
   totalTrips:   { type: Number, default: 0 },
+  experience:   { type: Number, default: 0 }, // years of driving experience (shown on bids)
 }, { timestamps: true });
 // KEY RULE: auto-update canAcceptBookings on save
 s.pre("save", function(next) { this.canAcceptBookings = this.walletBalance >= 0; next(); });
