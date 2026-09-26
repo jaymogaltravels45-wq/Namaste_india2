@@ -16,6 +16,7 @@ import '../../features/customer/screens/customer_sos_screen.dart';
 import '../../features/customer/screens/customer_support_screen.dart';
 import '../../features/customer/screens/customer_settings_screen.dart';
 import '../../features/customer/screens/customer_offers_screen.dart';
+import '../../features/customer/screens/customer_trip_tracking_screen.dart';
 import '../../features/customer/screens/customer_notifications_screen.dart';
 import '../../features/customer/screens/available_cars_screen.dart';
 import '../../features/driver/screens/driver_home_screen.dart';
@@ -81,6 +82,7 @@ class AppRouter {
       GoRoute(path: '/customer/settings',  builder: (_, __) => const CustomerSettingsScreen()),
       GoRoute(path: '/customer/offers',    builder: (_, __) => const CustomerOffersScreen()),
       GoRoute(path: '/customer/notifications', builder: (_, __) => const CustomerNotificationsScreen()),
+      GoRoute(path: '/customer/tracking/:id', builder: (_, s) => CustomerTripTrackingScreen(bookingId: s.pathParameters['id']!)),
       GoRoute(path: '/customer/cars', builder: (_, __) => const AvailableCarsScreen()),
       GoRoute(path: '/driver',             builder: (_, __) => const DriverHomeScreen()),
       GoRoute(path: '/driver/requests',    builder: (_, __) => const DriverNewRequestsScreen()),

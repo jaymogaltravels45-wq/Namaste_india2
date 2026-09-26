@@ -50,7 +50,7 @@ class _RideOtpScreenState extends State<RideOtpScreen> {
         setState(() => _booking = body['booking'] as Map<String, dynamic>);
       } else {
         setState(
-            () => _error = body['message']?.toString() ?? 'Load nahi ho paya');
+            () => _error = body['message']?.toString() ?? 'Could not load');
       }
     } catch (e) {
       if (mounted) setState(() => _error = 'Network error: $e');
@@ -83,15 +83,15 @@ class _RideOtpScreenState extends State<RideOtpScreen> {
   String _statusLabel(String s) {
     switch (s) {
       case 'pending':
-        return 'Driver dhoondh rahe hain';
+        return 'Looking for a driver';
       case 'driver_assigned':
-        return 'Driver mil gaya — OTP batao';
+        return 'Driver assigned — OTP batao';
       case 'started':
-        return 'Ride chal rahi hai';
+        return 'Ride in progress';
       case 'completed':
         return 'Ride poori ho gayi';
       case 'cancelled':
-        return 'Cancel ho gayi';
+        return 'Cancelled';
       default:
         return s;
     }
@@ -124,11 +124,11 @@ class _RideOtpScreenState extends State<RideOtpScreen> {
               const Icon(Icons.error_outline,
                   size: 56, color: AppTheme.error),
               const SizedBox(height: 12),
-              Text(_error ?? 'Kuch gadbad ho gayi',
+              Text(_error ?? 'Something went wrong',
                   textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton(
-                  onPressed: _load, child: const Text('Dobara try karo')),
+                  onPressed: _load, child: const Text('Try Again')),
             ],
           ),
         ),
@@ -238,10 +238,10 @@ class _RideOtpScreenState extends State<RideOtpScreen> {
                       style: TextStyle(
                           fontWeight: FontWeight.bold, fontSize: 14)),
                   const SizedBox(height: 10),
-                  _driverRow(Icons.person, 'Naam',
+                  _driverRow(Icons.person, 'Name',
                       driver['name']?.toString() ?? 'Driver'),
                   if (driver['vehicleNumber'] != null)
-                    _driverRow(Icons.directions_car, 'Gaadi number',
+                    _driverRow(Icons.directions_car, 'Vehicle number',
                         driver['vehicleNumber'].toString()),
                   if (driver['phone'] != null)
                     _driverRow(Icons.phone, 'Phone',

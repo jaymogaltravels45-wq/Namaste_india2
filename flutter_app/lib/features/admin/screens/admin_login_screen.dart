@@ -104,7 +104,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
     if (result == null) {
       setState(() {
         _loading = false;
-        _error = 'Galat OTP. Dobara try karo.';
+        _error = 'Galat OTP. Try Again.';
       });
       _pinCtrl.clear();
       return;

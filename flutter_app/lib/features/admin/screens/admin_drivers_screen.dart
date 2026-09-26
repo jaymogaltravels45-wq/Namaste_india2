@@ -138,7 +138,7 @@ class _AdminDriversScreenState extends State<AdminDriversScreen> {
         controller: _searchCtrl,
         onChanged: (v) => setState(() => _query = v.trim()),
         decoration: InputDecoration(
-          hintText: 'Naam, phone ya gaadi number…',
+          hintText: 'Name, phone ya gaadi number…',
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: _query.isEmpty
               ? null
@@ -303,7 +303,7 @@ class _AdminDriversScreenState extends State<AdminDriversScreen> {
             Text(_phone(d),
                 style: const TextStyle(color: AppTheme.textSecondary)),
             const SizedBox(height: 14),
-            _row('Gaadi',
+            _row('Vehicle',
                 '${d['vehicleType'] ?? '-'} • ${d['vehicleNumber'] ?? '-'}'),
             _row('Model', '${d['vehicleModel'] ?? '-'}'),
             _row('License', '${d['licenseNumber'] ?? '-'}'),

@@ -68,7 +68,7 @@ class _DriverNewRequestsScreenState extends State<DriverNewRequestsScreen> {
       setState(() => _accepting.remove(id));
       if (res.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Booking accept ho gayi!"),
+          content: Text("Booking accepted!"),
           backgroundColor: AppTheme.success,
         ));
         Nav.push(context, "/driver/my-booking/$id");

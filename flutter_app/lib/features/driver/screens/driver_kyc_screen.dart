@@ -43,12 +43,12 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
         child: Column(mainAxisSize: MainAxisSize.min, children: [
           ListTile(
             leading: const Icon(Icons.camera_alt),
-            title: const Text("Camera se lo"),
+            title: const Text("Take from Camera"),
             onTap: () => Navigator.of(ctx).pop(ImageSource.camera),
           ),
           ListTile(
             leading: const Icon(Icons.photo_library),
-            title: const Text("Gallery se chuno"),
+            title: const Text("Choose from Gallery"),
             onTap: () => Navigator.of(ctx).pop(ImageSource.gallery),
           ),
         ]),
@@ -70,7 +70,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_licensePhoto == null || _rcPhoto == null) {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Dono documents ki photo lagao"),
+        content: Text("Please upload both documents"),
         backgroundColor: AppTheme.error,
       ));
       return;
@@ -98,7 +98,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
       if (res.statusCode == 201 && body["success"] == true) {
         setState(() { _saving = false; _submitted = true; });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("KYC submit ho gaya! Review me hai."),
+          content: Text("KYC submitted! Under review."),
           backgroundColor: AppTheme.success,
         ));
       } else if (res.statusCode == 409) {
@@ -107,7 +107,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
       } else {
         setState(() => _saving = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          content: Text((body["message"] ?? "Submit nahi hua").toString()),
+          content: Text((body["message"] ?? "Submission failed").toString()),
           backgroundColor: AppTheme.error,
         ));
       }
@@ -115,7 +115,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        content: Text("Network error — phir try karo"),
+        content: Text("Network error — please try again"),
         backgroundColor: AppTheme.error,
       ));
     }
@@ -138,12 +138,12 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
           child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Text("Apne documents verify karwao",
+                const Text("Please verify your documents",
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 4),
                 const Text(
-                    "KYC approve hone ke baad hi bookings milengi.",
+                    "You will receive bookings only after KYC approval.",
                     style: TextStyle(
                         fontSize: 12, color: AppTheme.textSecondary)),
                 const SizedBox(height: 16),
@@ -151,12 +151,12 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
                   controller: _nameCtrl,
                   textCapitalization: TextCapitalization.words,
                   decoration: const InputDecoration(
-                    labelText: "Poora Naam",
+                    labelText: "Poora Name",
                     hintText: "Rahul Sharma",
                     prefixIcon: Icon(Icons.person_outline),
                   ),
                   validator: (v) => (v == null || v.trim().length < 3)
-                      ? "Apna naam likho"
+                      ? "Enter your name"
                       : null,
                 ),
                 const SizedBox(height: 12),
@@ -171,7 +171,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
                   validator: (v) {
                     final d = (v ?? "").replaceAll(RegExp(r"\D"), "");
                     final n = d.length == 12 && d.startsWith("91") ? d.substring(2) : d;
-                    return n.length == 10 ? null : "Sahi 10-digit number likho";
+                    return n.length == 10 ? null : "Enter a valid 10-digit number";
                   },
                 ),
                 const SizedBox(height: 12),
@@ -184,7 +184,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
                   validator: (v) => (v == null || v.trim().length < 8)
-                      ? "Sahi license number likho"
+                      ? "Enter a valid license number"
                       : null,
                 ),
                 const SizedBox(height: 12),
@@ -198,7 +198,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
                         Icon(Icons.directions_car_outlined),
                   ),
                   validator: (v) => (v == null || v.trim().length < 6)
-                      ? "Sahi vehicle number likho"
+                      ? "Enter a valid vehicle number"
                       : null,
                 ),
                 const SizedBox(height: 12),
@@ -284,13 +284,13 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
                           Icon(Icons.check_circle,
                               color: AppTheme.success, size: 16),
                           SizedBox(width: 4),
-                          Text("Photo lag gayi",
+                          Text("Photo uploaded",
                               style: TextStyle(
                                   fontSize: 12,
                                   color: AppTheme.success)),
                         ]),
                         const SizedBox(height: 4),
-                        const Text("Badalne ke liye tap karo",
+                        const Text("Tap to change",
                             style: TextStyle(
                                 fontSize: 11,
                                 color: AppTheme.textSecondary)),
@@ -303,7 +303,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
                     Icon(Icons.cloud_upload_outlined,
                         size: 36, color: AppTheme.textSecondary),
                     SizedBox(height: 8),
-                    Text("Tap karke photo lagao",
+                    Text("Tap to upload photo",
                         style: TextStyle(
                             color: AppTheme.textSecondary,
                             fontSize: 13)),
@@ -325,12 +325,12 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
                   size: 56, color: AppTheme.warning),
             ),
             const SizedBox(height: 20),
-            const Text("KYC Review Me Hai",
+            const Text("KYC Under Review",
                 style:
                     TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
             const Text(
-              "Hamari team aapke documents check kar rahi hai. Aam taur pe 24 ghante me approve ho jata hai.",
+              "Our team is reviewing your documents. Approval usually takes up to 24 hours.",
               textAlign: TextAlign.center,
               style:
                   TextStyle(color: AppTheme.textSecondary, fontSize: 13),
@@ -350,7 +350,7 @@ class _DriverKycScreenState extends State<DriverKycScreen> {
             OutlinedButton.icon(
               onPressed: () => setState(() => _submitted = false),
               icon: const Icon(Icons.edit),
-              label: const Text("Details edit karo"),
+              label: const Text("Edit Details"),
             ),
           ]),
         ),

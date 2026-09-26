@@ -183,7 +183,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
         controller: _searchCtrl,
         onChanged: (v) => setState(() => _query = v.trim()),
         decoration: InputDecoration(
-          hintText: 'Naam ya phone se khojo…',
+          hintText: 'Name ya phone se khojo…',
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: _query.isEmpty
               ? null

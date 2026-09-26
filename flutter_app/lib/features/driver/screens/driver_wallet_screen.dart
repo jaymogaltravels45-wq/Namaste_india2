@@ -114,7 +114,7 @@ class _DriverWalletScreenState extends State<DriverWalletScreen> {
               delayMs: 120,
               child: PremiumEmpty(
                 icon: Icons.receipt_long_rounded,
-                title: 'Abhi koi transaction nahi hai',
+                title: 'No transactions yet',
                 subtitle:
                     'Commission, recharge aur trip earnings yahin dikhengi.',
               ),

@@ -354,7 +354,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                     fontWeight: FontWeight.w800,
                                     fontSize: 16)),
                             SizedBox(height: 4),
-                            Text("Online drivers dekho, seedha Hire karo",
+                            Text("See online drivers, hire directly",
                                 style: TextStyle(
                                     color: Colors.white70, fontSize: 12)),
                           ],
@@ -590,7 +590,7 @@ class _TiltCardState extends State<_TiltCard>
             ..setEntry(3, 2, 0.0012)
             ..rotateX(_rx)
             ..rotateY(_ry)
-            ..scaleByDouble(_scale, _scale, _scale, 1.0),
+            ..scale(_scale, _scale, _scale),
           child: widget.child,
         ),
       );

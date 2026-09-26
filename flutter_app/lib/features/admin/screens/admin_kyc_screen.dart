@@ -208,7 +208,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             ],
           ),
           const SizedBox(height: 12),
-          _row('Gaadi',
+          _row('Vehicle',
               '${d['vehicleType']?.toString() ?? '-'} • ${d['vehicleNumber']?.toString() ?? '-'}'),
           _row('Model', '${d['vehicleModel']?.toString() ?? '-'}'),
           _row('License', '${d['licenseNumber']?.toString() ?? '-'}'),

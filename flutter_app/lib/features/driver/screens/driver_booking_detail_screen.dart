@@ -56,7 +56,7 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
         });
       } else {
         setState(
-            () { _error = "Booking nahi mili (code ${res.statusCode})"; _loading = false; });
+            () { _error = "Booking not found (code ${res.statusCode})"; _loading = false; });
       }
     } catch (_) {
       if (!mounted) return;
@@ -79,9 +79,9 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
       if (res.statusCode == 200 && (body["success"] ?? false)) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(switch (action) {
-            "arrived" => "Customer ko inform karo — OTP lekar aao!",
-            "verify-start" => "Trip shuru! Safe drive.",
-            _ => "Trip complete! Payment lo.",
+            "arrived" => "Inform customer — ask for OTP!",
+            "verify-start" => "Trip started! Drive safe.",
+            _ => "Trip complete! Collect payment.",
           }),
           backgroundColor: AppTheme.success,
         ));
@@ -89,7 +89,7 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text(
-              (body["message"] ?? "Action fail (code ${res.statusCode})")
+              (body["message"] ?? "Action failed (code ${res.statusCode})")
                   .toString()),
           backgroundColor: AppTheme.error,
         ));
@@ -131,7 +131,7 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
             const Icon(Icons.error_outline,
                 size: 64, color: AppTheme.textSecondary),
             const SizedBox(height: 12),
-            Text(_error ?? "Kuch gadbad hui"),
+            Text(_error ?? "Something went wrong"),
             const SizedBox(height: 16),
             ElevatedButton.icon(
                 onPressed: _load,
@@ -186,7 +186,7 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
                   ]),
               const SizedBox(height: 6),
               const Text(
-                  "Customer se 4-digit OTP lekar neeche daalo",
+                  "Enter the 4-digit OTP received from customer",
                   textAlign: TextAlign.center,
                   style: TextStyle(
                       fontSize: 12, color: AppTheme.textSecondary)),
@@ -217,28 +217,28 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
     switch (status) {
       case "confirmed":
         c = AppTheme.primary;
-        label = "Confirmed — pickup point par pahuncho";
+        label = "Confirmed — head to pickup point";
         break;
       case "driver_assigned":
         c = AppTheme.primary;
-        label = "Assigned — customer ka wait karo";
+        label = "Assigned — wait for customer";
         break;
       case "arrived":
         c = AppTheme.warning;
-        label = "Pahunch gaye — customer se OTP lo";
+        label = "Arrived — collect OTP from customer";
         break;
       case "ongoing":
       case "started":
         c = AppTheme.warning;
-        label = "Trip chal rahi hai";
+        label = "Trip in progress";
         break;
       case "completed":
         c = AppTheme.success;
-        label = "Trip complete ho gayi";
+        label = "Trip completed";
         break;
       case "cancelled":
         c = AppTheme.error;
-        label = "Booking cancel ho gayi";
+        label = "Booking cancelled";
         break;
       default:
         c = AppTheme.textSecondary;
@@ -405,7 +405,7 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
               Text(
                   rating != null
                       ? "Complete · Rating: $rating★"
-                      : "Trip complete — payment le liya?",
+                      : "Trip complete — payment collected?",
                   style: const TextStyle(
                       fontWeight: FontWeight.w600,
                       color: AppTheme.success)),
@@ -420,7 +420,7 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
     String action;
     if (status == "confirmed" || status == "driver_assigned" ||
         status == "pending") {
-      label = "Pahunch Gaya (Arrived)";
+      label = "Mark as Arrived";
       icon = Icons.location_on;
       color = AppTheme.warning;
       action = "arrived";
@@ -445,7 +445,7 @@ class _DriverBookingDetailScreenState extends State<DriverBookingDetailScreen> {
                 if (otp.length != 4) {
                   ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                          content: Text("4-digit OTP daalo"),
+                          content: Text("Enter 4-digit OTP"),
                           backgroundColor: AppTheme.error));
                   return;
                 }

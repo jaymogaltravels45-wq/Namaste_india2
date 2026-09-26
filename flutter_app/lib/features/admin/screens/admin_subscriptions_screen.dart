@@ -105,7 +105,7 @@ class _AdminSubscriptionsScreenState
         if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-              content: Text('Naam, price aur days sahi dalen.'),
+              content: Text('Name, price aur days sahi dalen.'),
               backgroundColor: AppTheme.error),
         );
       } else {

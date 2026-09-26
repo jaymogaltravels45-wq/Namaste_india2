@@ -61,7 +61,7 @@ class _PhoneLoginScreenState extends State<PhoneLoginScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('OTP bhejne me problem hui. Dobara try karo.'),
+          content: Text('OTP bhejne me problem hui. Try Again.'),
           backgroundColor: AppTheme.error,
         ),
       );

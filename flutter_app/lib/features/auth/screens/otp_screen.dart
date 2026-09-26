@@ -73,7 +73,7 @@ class _OtpScreenState extends State<OtpScreen>
     setState(() => _loading = false);
 
     if (result == null) {
-      setState(() => _error = 'Galat OTP. Dobara try karo.');
+      setState(() => _error = 'Galat OTP. Try Again.');
       _pinCtrl.clear();
       _shakeCtrl.forward(from: 0);
       return;

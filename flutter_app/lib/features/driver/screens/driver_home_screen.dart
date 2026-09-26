@@ -114,7 +114,7 @@ class _State extends State<DriverHomeScreen> {
         reqs = raw.map((e) => Map<String, dynamic>.from(e as Map)).toList();
       }
 
-      // Aaj ki kamai: aaj complete hui bookings ka jod
+      // Today's Earnings: aaj complete hui bookings ka jod
       var earn = 0.0;
       var trips = 0;
       if (myRes.statusCode == 200) {
@@ -162,7 +162,7 @@ class _State extends State<DriverHomeScreen> {
   Future<void> _setOnline(bool v) async {
     if (_toggling) return;
     if (v && !_canBook) {
-      _snack('Pehle wallet recharge karo', error: true);
+      _snack('Please recharge your wallet first', error: true);
       return;
     }
     setState(() => _toggling = true);
@@ -178,11 +178,11 @@ class _State extends State<DriverHomeScreen> {
           _online = v;
           _toggling = false;
         });
-        _snack(v ? 'Tum online ho — requests aayengi' : 'Tum offline ho');
+        _snack(v ? 'You are online — requests incoming' : 'You are offline');
         if (v) _loadData();
       } else {
         setState(() => _toggling = false);
-        _snack(_msgOf(res, 'Status badal nahi paya'), error: true);
+        _snack(_msgOf(res, 'Could not update status'), error: true);
       }
     } catch (_) {
       if (!mounted) return;
@@ -202,10 +202,10 @@ class _State extends State<DriverHomeScreen> {
       if (!mounted) return;
       setState(() => _acceptingId = null);
       if (res.statusCode == 200) {
-        _snack('Booking accept ho gayi!');
+        _snack('Booking accepted!');
         Nav.push(context, "/driver/my-booking/$id");
       } else {
-        _snack(_msgOf(res, 'Accept nahi ho payi'), error: true);
+        _snack(_msgOf(res, 'Could not accept booking'), error: true);
         _loadData(); // list refresh — shayad kisi aur ne le li
       }
     } catch (_) {
@@ -257,19 +257,19 @@ class _State extends State<DriverHomeScreen> {
       // Driver ka record server pe nahi — KYC/register karwao
       return PremiumEmpty(
         icon: Icons.badge_rounded,
-        title: 'Driver registration baaki hai',
+        title: 'Driver registration pending',
         subtitle:
-            'Requests pane se pehle apni gaadi aur license ki details poori karo.',
-        ctaLabel: 'Registration Karo',
+            'Complete your vehicle and license details before receiving requests.',
+        ctaLabel: 'Register Now',
         onCta: () => Nav.push(context, '/driver/kyc'),
       );
     }
     if (_error == 'load_failed') {
       return PremiumEmpty(
         icon: Icons.cloud_off_rounded,
-        title: 'Data load nahi hua',
-        subtitle: 'Internet check karo aur dobara koshish karo.',
-        ctaLabel: 'Dobara Koshish Karo',
+        title: 'Failed to load data',
+        subtitle: 'Check your internet and try again.',
+        ctaLabel: 'Try Again',
         onCta: _loadData,
       );
     }
@@ -339,7 +339,7 @@ class _State extends State<DriverHomeScreen> {
                                 CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Namaste, Driver',
+                                'Hello, Driver',
                                 style: TextStyle(
                                   color: Colors.white,
                                   fontSize: 19,
@@ -349,7 +349,7 @@ class _State extends State<DriverHomeScreen> {
                               ),
                               SizedBox(height: 2),
                               Text(
-                                'Aaj ki kamai shuru karo',
+                                'Start earning today',
                                 style: TextStyle(
                                   color: Colors.white70,
                                   fontSize: 12.5,
@@ -457,7 +457,7 @@ class _State extends State<DriverHomeScreen> {
                               children: [
                                 Text(
                                   _online && _canBook
-                                      ? 'Online — Requests ON'
+                                      ? 'Online — Accepting Requests'
                                       : 'Offline',
                                   style: const TextStyle(
                                     color: Colors.white,
@@ -467,8 +467,8 @@ class _State extends State<DriverHomeScreen> {
                                 ),
                                 Text(
                                   _canBook
-                                      ? 'Nayi trip requests yahin aayengi'
-                                      : 'Wallet recharge karo',
+                                      ? 'New trip requests will appear here'
+                                      : 'Recharge wallet',
                                   style: TextStyle(
                                     color:
                                         Colors.white.withOpacity(0.65),
@@ -504,7 +504,7 @@ class _State extends State<DriverHomeScreen> {
                           child: _statCard(
                             Icons.currency_rupee_rounded,
                             'Rs.${_todayEarnings.toStringAsFixed(0)}',
-                            "Aaj ki kamai",
+                            "Today's Earnings",
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -512,7 +512,7 @@ class _State extends State<DriverHomeScreen> {
                           child: _statCard(
                             Icons.route_rounded,
                             '$_todayTrips',
-                            'Aaj ke trips',
+                            "Today's Trips",
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -624,7 +624,7 @@ class _State extends State<DriverHomeScreen> {
           children: [
             const Entrance(delayMs: 0, child: _LiveMapCard()),
             const SizedBox(height: 14),
-            const SectionTitle(title: 'Nayi Requests'),
+            const SectionTitle(title: 'New Requests'),
             const SizedBox(height: 10),
             ..._requests.asMap().entries.map(
                   (e) => Entrance(
@@ -660,11 +660,11 @@ class _State extends State<DriverHomeScreen> {
         icon: _online
             ? Icons.hourglass_empty_rounded
             : Icons.power_settings_new_rounded,
-        title: _online ? 'Nayi request ka intezaar' : 'Tum offline ho',
+        title: _online ? 'Waiting for new requests' : 'You are offline',
         subtitle: _online
-            ? 'Jaise hi koi booking aayegi, yahin dikhegi. Neeche kheench ke refresh bhi kar sakte ho.'
-            : 'Online jao taaki trip requests milna shuru hon.',
-        ctaLabel: _online ? 'Refresh Karo' : 'Online Jao',
+            ? 'New bookings will appear here. Pull down to refresh.'
+            : 'Go online to start receiving trip requests.',
+        ctaLabel: _online ? 'Refresh' : 'Go Online',
         onCta: _online ? _loadData : (_canBook ? () => _setOnline(true) : null),
       );
 }
@@ -781,7 +781,7 @@ class _LiveMapCardState extends State<_LiveMapCard> {
                 children: [
                   Icon(Icons.radar, size: 14, color: Colors.white),
                   SizedBox(width: 5),
-                  Text('Meri live location',
+                  Text('My live location',
                       style: TextStyle(
                           color: Colors.white,
                           fontSize: 11,

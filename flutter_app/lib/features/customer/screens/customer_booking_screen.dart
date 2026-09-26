@@ -136,7 +136,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       } else {
         final km = double.tryParse(_kmCtrl.text.trim()) ?? 0;
         if (km <= 0) {
-          _snack('Distance (km) daaliye', error: true);
+          _snack('Enter distance (km)', error: true);
           setState(() => _loadingFare = false);
           return;
         }
@@ -184,17 +184,17 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
 
   Future<void> _confirmBooking() async {
     if (_pickupCtrl.text.trim().isEmpty) {
-      _snack('Pickup address likhiye', error: true);
+      _snack('Enter pickup address', error: true);
       return;
     }
     if (_kind != 'local' && _dropCtrl.text.trim().isEmpty) {
-      _snack('Drop address likhiye', error: true);
+      _snack('Enter drop address', error: true);
       return;
     }
     if (_kind != 'local' && _kind != 'bid') {
       final km = double.tryParse(_kmCtrl.text.trim()) ?? 0;
       if (km <= 0) {
-        _snack('Distance (km) daaliye', error: true);
+        _snack('Enter distance (km)', error: true);
         return;
       }
     }
@@ -228,7 +228,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
       } else if (_kind == 'bid') {
         final bid = double.tryParse(_bidCtrl.text.trim()) ?? 0;
         if (bid <= 0) {
-          _snack('Apni bid amount (₹) daaliye', error: true);
+          _snack('Enter your bid amount (₹)', error: true);
           return;
         }
         payload['customerBid'] = bid;
@@ -246,7 +246,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
           body['success'] == true) {
         final booking = body['booking'] as Map<String, dynamic>;
         final id = booking['_id']?.toString() ?? '';
-        _snack('Booking ho gayi! Driver dhoondh rahe hain...');
+        _snack('Booking confirmed! Finding a driver...');
         Nav.push(context, '/customer/booking/$id');
       } else {
         _snack(body['message']?.toString() ?? 'Booking fail ho gayi',
@@ -282,7 +282,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
             const SizedBox(height: 16),
             _locationRow(
               label: 'Pickup location',
-              hint: 'Map pe select karo',
+              hint: 'Select on map',
               icon: Icons.my_location,
               ctrl: _pickupCtrl,
               onTap: () => _pickOnMap(true),
@@ -291,7 +291,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
             if (_kind != 'local')
               _locationRow(
                 label: 'Drop location',
-                hint: 'Map pe select karo',
+                hint: 'Select on map',
                 icon: Icons.location_on,
                 ctrl: _dropCtrl,
                 onTap: () => _pickOnMap(false),
@@ -301,7 +301,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
               children: [
                 Expanded(
                   child: _dropdownField(
-                    'Gaadi',
+                    'Vehicle',
                     _vehicle,
                     _vehicles.map(_vehicleLabel).toList(),
                     _vehicles,
@@ -342,7 +342,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                         child: CircularProgressIndicator(
                             strokeWidth: 2.5, color: Colors.white))
                     : Text(
-                        _kind == 'bid' ? 'Bid Bhejo' : 'Confirm Booking',
+                        _kind == 'bid' ? 'Submit Bid' : 'Confirm Booking',
                         style: const TextStyle(
                             fontSize: 16, fontWeight: FontWeight.w700),
                       ),
@@ -402,10 +402,10 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                       const SizedBox(height: 4),
                       Text(
                         _kind == 'local'
-                            ? 'Sheher ke andar fixed package'
+                            ? 'Fixed package within the city'
                             : _kind == 'bid'
-                                ? 'Apna rate lagao, driver accept karega'
-                                : '100 km tak fixed, uske baad per-km',
+                                ? 'Set your price, driver will accept'
+                                : 'Fixed up to 100 km, per-km after that',
                         style: TextStyle(
                             color:
                                 Colors.white.withOpacity(0.8),
@@ -575,7 +575,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                     const SizedBox(height: 2),
                     Text(
                       _pickupTime == null
-                          ? 'Abhi book karo (1 ghante me)'
+                          ? 'Book now (within 1 hour)'
                           : _fmtDateTime(_pickupTime!),
                       style: TextStyle(
                           color: AppTheme.textSecondary, fontSize: 13),
@@ -604,7 +604,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
             SizedBox(width: 10),
             Expanded(
               child: Text(
-                'Bid me fare pehle se fix nahi hota. Driver tumhari request dekh ke apna rate bhejenge.',
+                'Fare is not fixed in bid mode. Drivers will view your request and send their rate.',
                 style: TextStyle(fontSize: 13),
               ),
             ),
@@ -626,7 +626,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
                       child: CircularProgressIndicator(strokeWidth: 2))
                   : const Icon(Icons.currency_rupee),
               label:
-                  Text(_loadingFare ? 'Fare nikal rahe hain...' : 'Get Fare'),
+                  Text(_loadingFare ? 'Calculating fare...' : 'Get Fare'),
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppTheme.primary,
                 side: const BorderSide(color: AppTheme.primary),

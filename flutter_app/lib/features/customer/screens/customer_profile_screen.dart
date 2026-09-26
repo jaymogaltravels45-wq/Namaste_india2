@@ -67,7 +67,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
         });
       } else {
         setState(() {
-          _error = body['message']?.toString() ?? 'Load nahi ho paya';
+          _error = body['message']?.toString() ?? 'Could not load';
           _phone = AuthService.phone ?? '';
         });
       }
@@ -85,7 +85,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
 
   Future<void> _save() async {
     if (_nameCtrl.text.trim().isEmpty) {
-      _snack('Naam likhiye', error: true);
+      _snack('Name likhiye', error: true);
       return;
     }
     setState(() => _saving = true);
@@ -157,7 +157,7 @@ class _CustomerProfileScreenState extends State<CustomerProfileScreen> {
                 children: [
                   _avatarCard(),
                   const SizedBox(height: 16),
-                  _field('Naam', _nameCtrl, Icons.person, 'Apna naam likhiye'),
+                  _field('Name', _nameCtrl, Icons.person, 'Apna naam likhiye'),
                   const SizedBox(height: 12),
                   _field('Email', _emailCtrl, Icons.email,
                       'email@example.com',

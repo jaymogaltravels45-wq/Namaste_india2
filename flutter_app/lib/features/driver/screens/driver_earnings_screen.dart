@@ -145,7 +145,7 @@ class _DriverEarningsScreenState extends State<DriverEarningsScreen> {
               borderRadius: BorderRadius.circular(16),
             ),
             child: Column(children: [
-              const Text("Aaj ki kamai",
+              const Text("Today's Earnings",
                   style:
                       TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 4),

@@ -51,7 +51,7 @@ class _CustomerBookingDetailScreenState
         setState(() => _booking = body['booking'] as Map<String, dynamic>);
       } else {
         setState(
-            () => _error = body['message']?.toString() ?? 'Load nahi ho paya');
+            () => _error = body['message']?.toString() ?? 'Could not load');
       }
     } catch (e) {
       if (mounted) setState(() => _error = 'Network error: $e');
@@ -76,15 +76,15 @@ class _CustomerBookingDetailScreenState
   String _statusLabel(String s) {
     switch (s) {
       case 'pending':
-        return 'Driver dhoondh rahe hain';
+        return 'Looking for a driver';
       case 'driver_assigned':
-        return 'Driver mil gaya';
+        return 'Driver assigned';
       case 'started':
-        return 'Ride chal rahi hai';
+        return 'Ride in progress';
       case 'completed':
-        return 'Poori ho gayi';
+        return 'Completed';
       case 'cancelled':
-        return 'Cancel ho gayi';
+        return 'Cancelled';
       default:
         return s;
     }
@@ -117,11 +117,11 @@ class _CustomerBookingDetailScreenState
               const Icon(Icons.error_outline,
                   size: 56, color: AppTheme.error),
               const SizedBox(height: 12),
-              Text(_error ?? 'Kuch gadbad ho gayi',
+              Text(_error ?? 'Something went wrong',
                   textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton(
-                  onPressed: _load, child: const Text('Dobara try karo')),
+                  onPressed: _load, child: const Text('Try Again')),
             ],
           ),
         ),
@@ -157,24 +157,24 @@ class _CustomerBookingDetailScreenState
               _row(Icons.timer, 'Package', b['localPackage'].toString()),
           ]),
           const SizedBox(height: 12),
-          _card('Gaadi & Kiraya', [
-            _row(Icons.directions_car, 'Gaadi',
+          _card('Vehicle & Fare', [
+            _row(Icons.directions_car, 'Vehicle',
                 _vehicleLabel(b['vehicleType']?.toString() ?? '')),
             _row(Icons.confirmation_number, 'Booking type',
                 _typeLabel(type)),
             _row(Icons.currency_rupee, 'Fare',
-                fare != null ? '₹$fare' : 'Driver batayega'),
+                fare != null ? '₹$fare' : 'Driver will confirm'),
             _row(Icons.payment, 'Payment', _paymentLabel(paymentStatus)),
           ]),
           if (driver != null) ...[
             const SizedBox(height: 12),
             _card('Driver', [
-              _row(Icons.person, 'Naam',
+              _row(Icons.person, 'Name',
                   driver['name']?.toString() ?? 'Driver'),
               if (driver['phone'] != null)
                 _row(Icons.phone, 'Phone', driver['phone'].toString()),
               if (driver['vehicleNumber'] != null)
-                _row(Icons.directions_car, 'Gaadi number',
+                _row(Icons.directions_car, 'Vehicle number',
                     driver['vehicleNumber'].toString()),
             ]),
           ],
@@ -201,7 +201,7 @@ class _CustomerBookingDetailScreenState
                     Icon(Icons.key, color: AppTheme.warning),
                     SizedBox(width: 10),
                     Expanded(
-                        child: Text('Ride OTP dekho — driver ko batana hai',
+                        child: Text('View Ride OTP — share with your driver',
                             style:
                                 TextStyle(fontWeight: FontWeight.w600))),
                     Icon(Icons.arrow_forward_ios, size: 16),
@@ -230,7 +230,7 @@ class _CustomerBookingDetailScreenState
                 onPressed: () =>
                     Nav.push(context, '/rating/${widget.bookingId}'),
                 icon: const Icon(Icons.star),
-                label: const Text('Ride ko rate karo'),
+                label: const Text('Rate this ride'),
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppTheme.primary,
                   side: const BorderSide(color: AppTheme.primary),
@@ -367,13 +367,13 @@ class _CustomerBookingDetailScreenState
   String _paymentLabel(String p) {
     switch (p) {
       case 'cash':
-        return 'Cash — ho gaya';
+        return 'Cash — Paid';
       case 'upi':
-        return 'UPI — ho gaya';
+        return 'UPI — Paid';
       case 'refunded':
-        return 'Refund ho gaya';
+        return 'Refunded';
       default:
-        return 'Baaki hai';
+        return 'Pending';
     }
   }
 }
@@ -442,14 +442,14 @@ class _CustomerBidsSectionState extends State<_CustomerBidsSection> {
       final body = jsonDecode(res.body);
       if (res.statusCode == 200 && body['success'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text('Driver confirm ho gaya! 🎉'),
+          content: Text('Driver confirmed! 🎉'),
           backgroundColor: AppTheme.success,
         ));
         widget.onAccepted();
       } else {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content:
-              Text((body['message'] ?? 'Accept nahi ho paya').toString()),
+              Text((body['message'] ?? 'Could not accept').toString()),
           backgroundColor: AppTheme.error,
         ));
       }
@@ -485,7 +485,7 @@ class _CustomerBidsSectionState extends State<_CustomerBidsSection> {
                       TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
             ]),
             const SizedBox(height: 4),
-            const Text('Best offer choose karo — sabse sasta auto-select nahi hoga',
+            const Text('Choose the best offer — lowest price is not auto-selected',
                 style: TextStyle(fontSize: 12, color: AppTheme.textSecondary)),
             const SizedBox(height: 12),
             if (_loading)
@@ -494,7 +494,7 @@ class _CustomerBidsSectionState extends State<_CustomerBidsSection> {
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 12),
                 child: Center(
-                    child: Text('Abhi koi bid nahi aayi — thodi der me check karo',
+                    child: Text('No bids yet — check back shortly',
                         style: TextStyle(
                             color: AppTheme.textSecondary, fontSize: 13))),
               )
@@ -562,7 +562,7 @@ class _CustomerBidsSectionState extends State<_CustomerBidsSection> {
                       width: 18,
                       child: CircularProgressIndicator(
                           strokeWidth: 2, color: Colors.white))
-                  : const Text('Is Driver ko Select Karo'),
+                  : const Text('Select This Driver'),
             ),
           ),
         ],

@@ -51,7 +51,7 @@ class _CustomerBookingHistoryScreenState
         setState(() => _bookings = body['bookings'] as List<dynamic>);
       } else {
         setState(
-            () => _error = body['message']?.toString() ?? 'Load nahi ho paya');
+            () => _error = body['message']?.toString() ?? 'Could not load');
       }
     } catch (e) {
       if (mounted) setState(() => _error = 'Network error: $e');
@@ -78,9 +78,9 @@ class _CustomerBookingHistoryScreenState
       case 'pending':
         return 'Pending';
       case 'driver_assigned':
-        return 'Driver mil gaya';
+        return 'Driver assigned';
       case 'started':
-        return 'Chal rahi hai';
+        return 'In Progress';
       case 'completed':
         return 'Poori';
       case 'cancelled':
@@ -95,7 +95,7 @@ class _CustomerBookingHistoryScreenState
     return Scaffold(
       backgroundColor: AppTheme.background,
       appBar: AppBar(
-        title: const Text('Meri Trips'),
+        title: const Text('My Trips'),
         actions: [
           IconButton(icon: const Icon(Icons.refresh), onPressed: _load),
         ],
@@ -128,11 +128,11 @@ class _CustomerBookingHistoryScreenState
               const Icon(Icons.error_outline,
                   size: 56, color: AppTheme.error),
               const SizedBox(height: 12),
-              Text(_error ?? 'Kuch gadbad ho gayi',
+              Text(_error ?? 'Something went wrong',
                   textAlign: TextAlign.center),
               const SizedBox(height: 16),
               ElevatedButton(
-                  onPressed: _load, child: const Text('Dobara try karo')),
+                  onPressed: _load, child: const Text('Try Again')),
             ],
           ),
         ),
@@ -154,11 +154,11 @@ class _CustomerBookingHistoryScreenState
                     size: 48, color: AppTheme.primary),
               ),
               const SizedBox(height: 16),
-              const Text('Abhi koi trip nahi hai',
+              const Text('No trips yet',
                   style:
                       TextStyle(fontSize: 17, fontWeight: FontWeight.bold)),
               const SizedBox(height: 8),
-              Text('Pehli ride book karo!',
+              Text('Book your first ride!',
                   style: TextStyle(color: AppTheme.textSecondary)),
               const SizedBox(height: 16),
               ElevatedButton(

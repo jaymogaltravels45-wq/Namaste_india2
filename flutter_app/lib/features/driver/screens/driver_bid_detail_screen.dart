@@ -59,7 +59,7 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
           _loading = false;
         });
       } else {
-        setState(() { _error = "Booking nahi mili (code ${res.statusCode})"; _loading = false; });
+        setState(() { _error = "Booking not found (code ${res.statusCode})"; _loading = false; });
       }
     } catch (_) {
       if (!mounted) return;
@@ -78,7 +78,7 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
       setState(() => _busy = false);
       if (res.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          content: Text("Booking accept ho gayi!"),
+          content: Text("Booking accepted!"),
           backgroundColor: AppTheme.success,
         ));
         Nav.push(context, "/driver/my-booking/${widget.bookingId}");
@@ -200,7 +200,7 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
             const Icon(Icons.error_outline,
                 size: 64, color: AppTheme.textSecondary),
             const SizedBox(height: 12),
-            Text(_error ?? "Kuch gadbad hui"),
+            Text(_error ?? "Something went wrong"),
             const SizedBox(height: 16),
             ElevatedButton.icon(
                 onPressed: _load,

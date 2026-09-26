@@ -10,7 +10,7 @@ class CustomerWalletScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.background,
-      appBar: AppBar(title: const Text('Mera Wallet')),
+      appBar: AppBar(title: const Text('My Wallet')),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -41,7 +41,7 @@ class CustomerWalletScreen extends StatelessWidget {
                     child: OutlinedButton.icon(
                       onPressed: () => Nav.push(context, '/customer/history'),
                       icon: const Icon(Icons.history_rounded, size: 18),
-                      label: const Text('Meri Trips'),
+                      label: const Text('My Trips'),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppTheme.primary,
                         side: const BorderSide(
@@ -140,7 +140,7 @@ class CustomerWalletScreen extends StatelessWidget {
                         letterSpacing: -1)),
                 const SizedBox(height: 8),
                 Text(
-                  'Customer ke liye wallet jald aa raha hai. Abhi ride ka payment Cash ya UPI se hota hai.',
+                  'Customer wallet coming soon. Currently, ride payment is via Cash or UPI.',
                   style: TextStyle(
                       color: Colors.white.withOpacity(0.75),
                       fontSize: 12,
@@ -156,29 +156,29 @@ class CustomerWalletScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: const [
-            Text('Payment kaise hota hai?',
+            Text('How does payment work?',
                 style: TextStyle(
                     fontWeight: FontWeight.w800, fontSize: 14.5)),
             SizedBox(height: 12),
             _InfoRow(
                 icon: Icons.money_rounded,
-                text: 'Cash — ride khatam hone pe driver ko de do'),
+                text: 'Cash — pay the driver after the ride'),
             SizedBox(height: 10),
             _InfoRow(
                 icon: Icons.qr_code_rounded,
-                text: 'UPI — company ke QR pe direct payment'),
+                text: 'UPI — direct payment via company QR'),
             SizedBox(height: 10),
             _InfoRow(
                 icon: Icons.receipt_rounded,
-                text: 'Har payment booking detail me dikhega'),
+                text: 'All payments will appear in booking details'),
           ],
         ),
       );
 
   Widget _emptyTransactions() => const PremiumEmpty(
         icon: Icons.receipt_long_rounded,
-        title: 'Abhi koi transaction nahi hai',
-        subtitle: 'Tumhari saari payments yahin dikhengi.',
+        title: 'No transactions yet',
+        subtitle: 'All your payments will appear here.',
       );
 }
 
