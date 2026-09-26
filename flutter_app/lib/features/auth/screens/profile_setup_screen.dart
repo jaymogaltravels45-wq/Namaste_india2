@@ -72,7 +72,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = 'Profile save nahi ho paya. Phir try karo.';
+        _error = 'Could not save profile. Please try again.';
       });
     }
   }
@@ -87,10 +87,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded),
-          onPressed: () => context.pop(),
-        ),
+        automaticallyImplyLeading: false,
       ),
       body: SafeArea(
         child: Padding(
@@ -113,14 +110,14 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                 ),
                 const SizedBox(height: 24),
                 Text(
-                  'Apna profile banao',
+                  'Complete your profile',
                   style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Aap ${_roleLabel(role)} ke roop me jud rahe hain'
+                  'Joining as ${_roleLabel(role)}'
                   '${AuthService.phone != null ? ' • ${AuthService.phone}' : ''}',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: AppTheme.textSecondary,
@@ -131,9 +128,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   controller: _nameCtrl,
                   textCapitalization: TextCapitalization.words,
                   validator: (v) =>
-                      (v == null || v.trim().length < 2) ? 'Apna naam likhein' : null,
+                      (v == null || v.trim().length < 2) ? 'Enter your full name' : null,
                   decoration: const InputDecoration(
-                    labelText: 'Poora naam',
+                    labelText: 'Full Name',
                     hintText: 'e.g. Ramesh Kumar',
                     prefixIcon: Icon(Icons.badge_outlined),
                   ),
@@ -143,9 +140,9 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                   controller: _emailCtrl,
                   keyboardType: TextInputType.emailAddress,
                   validator: (v) {
-                    if (v == null || v.trim().isEmpty) return 'Email zaroori hai';
+                    if (v == null || v.trim().isEmpty) return 'Email is required';
                     if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(v.trim())) {
-                      return 'Sahi email likhein';
+                      return 'Enter a valid email';
                     }
                     return null;
                   },

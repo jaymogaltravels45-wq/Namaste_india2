@@ -114,10 +114,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.3)),
                             const Spacer(),
-                            _iconBtn(Icons.notifications_outlined, () => Nav.push(ctx, "/customer/notifications")),
+                            _iconBtn(Icons.notifications_outlined, () => Nav.go(ctx, "/customer/notifications")),
                             const SizedBox(width: 8),
                             _iconBtn(Icons.wallet_outlined,
-                                () => Nav.push(ctx, "/customer/wallet")),
+                                () => Nav.go(ctx, "/customer/wallet")),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -459,46 +459,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
         ],
       );
 
-  Widget _bottomNav(BuildContext ctx) => Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 12,
-                offset: const Offset(0, -3)),
-          ],
-        ),
-        child: BottomNavigationBar(
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          elevation: 0,
-          selectedItemColor: AppTheme.primary,
-          unselectedItemColor: Colors.grey,
-          currentIndex: 0,
-          onTap: (i) {
-            const routes = [
-              "/customer",
-              "/customer/booking",
-              "/customer/history",
-              "/customer/profile"
-            ];
-            if (i < routes.length) ctx.go(routes[i]);
-          },
-          items: [
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.home), label: tr("home")),
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.add_circle_outline),
-                label: tr("book")),
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.history), label: tr("trips")),
-            BottomNavigationBarItem(
-                icon: const Icon(Icons.person_outline),
-                label: tr("profile")),
-          ],
-        ),
-      );
+  Widget _bottomNav(BuildContext ctx) => const AppBottomNav(currentIndex: 0, isDriver: false);
 }
 
 class _TripKind {

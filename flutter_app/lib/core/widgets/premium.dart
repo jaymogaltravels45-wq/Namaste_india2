@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 
-/// Premium gradient button with press-scale animation.
+// ─────────────────────────────── PremiumButton ───────────────────────────────
 class PremiumButton extends StatefulWidget {
   final String label;
   final VoidCallback? onPressed;
@@ -81,8 +81,7 @@ class _PremiumButtonState extends State<PremiumButton>
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       if (widget.icon != null) ...[
-                        Icon(widget.icon,
-                            color: Colors.white, size: 20),
+                        Icon(widget.icon, color: Colors.white, size: 20),
                         const SizedBox(width: 8),
                       ],
                       Text(
@@ -103,7 +102,7 @@ class _PremiumButtonState extends State<PremiumButton>
   }
 }
 
-/// Soft premium card with consistent radius + shadow.
+// ─────────────────────────────── PremiumCard ─────────────────────────────────
 class PremiumCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -149,7 +148,7 @@ class PremiumCard extends StatelessWidget {
   }
 }
 
-/// Curved gradient header used on top of premium screens.
+// ─────────────────────────────── PremiumHeader ───────────────────────────────
 class PremiumHeader extends StatelessWidget {
   final String title;
   final String? subtitle;
@@ -172,56 +171,23 @@ class PremiumHeader extends StatelessWidget {
       height: height + (bottom != null ? 44 : 0),
       decoration: const BoxDecoration(
         gradient: AppTheme.heroGradient,
-        borderRadius: BorderRadius.vertical(
-          bottom: Radius.circular(AppTheme.rXl),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Color(0xFF1565C0),
-            blurRadius: 0,
-            offset: Offset.zero,
-          ),
-        ],
+        borderRadius:
+            BorderRadius.vertical(bottom: Radius.circular(AppTheme.rXl)),
       ),
       child: Stack(
         children: [
-          // decorative circles
           Positioned(
-            right: -40,
-            top: -40,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.08),
-              ),
-            ),
-          ),
+              right: -40,
+              top: -40,
+              child: _circle(160, Colors.white.withOpacity(0.08))),
           Positioned(
-            right: 60,
-            top: 40,
-            child: Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.06),
-              ),
-            ),
-          ),
+              right: 60,
+              top: 40,
+              child: _circle(90, Colors.white.withOpacity(0.06))),
           Positioned(
-            left: -30,
-            bottom: -50,
-            child: Container(
-              width: 140,
-              height: 140,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.gold.withOpacity(0.12),
-              ),
-            ),
-          ),
+              left: -30,
+              bottom: -50,
+              child: _circle(140, AppTheme.gold.withOpacity(0.12))),
           SafeArea(
             bottom: false,
             child: Padding(
@@ -233,27 +199,20 @@ class PremiumHeader extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Column(
-                          crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(
-                              title,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 24,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.4,
-                              ),
-                            ),
+                            Text(title,
+                                style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w800,
+                                    letterSpacing: -0.4)),
                             if (subtitle != null) ...[
                               const SizedBox(height: 4),
-                              Text(
-                                subtitle!,
-                                style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8),
-                                  fontSize: 13.5,
-                                ),
-                              ),
+                              Text(subtitle!,
+                                  style: TextStyle(
+                                      color: Colors.white.withOpacity(0.8),
+                                      fontSize: 13.5)),
                             ],
                           ],
                         ),
@@ -273,20 +232,394 @@ class PremiumHeader extends StatelessWidget {
       ),
     );
   }
+
+  Widget _circle(double s, Color c) => Container(
+      width: s,
+      height: s,
+      decoration: BoxDecoration(color: c, shape: BoxShape.circle));
 }
 
-/// Staggered fade+slide entrance wrapper.
+// ─────────────────────────────── ShimmerBox ──────────────────────────────────
+/// Animated shimmer skeleton — professional loading state like Uber/LinkedIn.
+class ShimmerBox extends StatefulWidget {
+  final double width;
+  final double height;
+  final double radius;
+  const ShimmerBox(
+      {super.key,
+      required this.width,
+      required this.height,
+      this.radius = 10});
+
+  @override
+  State<ShimmerBox> createState() => _ShimmerBoxState();
+}
+
+class _ShimmerBoxState extends State<ShimmerBox>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c;
+  late final Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _c = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 1200))
+      ..repeat();
+    _anim = Tween<double>(begin: -2, end: 2)
+        .animate(CurvedAnimation(parent: _c, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Container(
+        width: widget.width,
+        height: widget.height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(widget.radius),
+          gradient: LinearGradient(
+            begin: Alignment(_anim.value - 1, 0),
+            end: Alignment(_anim.value, 0),
+            colors: const [
+              Color(0xFFE8EDF5),
+              Color(0xFFF6F8FC),
+              Color(0xFFE8EDF5),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Skeleton trip card shown while loading lists.
+class SkeletonTripCard extends StatelessWidget {
+  const SkeletonTripCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.rLg),
+        border: Border.all(color: AppTheme.border.withOpacity(0.5)),
+        boxShadow: AppTheme.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            const ShimmerBox(width: 120, height: 14, radius: 7),
+            const Spacer(),
+            const ShimmerBox(width: 64, height: 24, radius: 12),
+          ]),
+          const SizedBox(height: 16),
+          Row(children: [
+            const ShimmerBox(width: 16, height: 16, radius: 8),
+            const SizedBox(width: 10),
+            const ShimmerBox(width: 200, height: 13, radius: 6),
+          ]),
+          const SizedBox(height: 8),
+          Row(children: [
+            const ShimmerBox(width: 16, height: 16, radius: 8),
+            const SizedBox(width: 10),
+            const ShimmerBox(width: 160, height: 13, radius: 6),
+          ]),
+          const SizedBox(height: 14),
+          Row(children: [
+            const ShimmerBox(width: 80, height: 12, radius: 6),
+            const Spacer(),
+            const ShimmerBox(width: 56, height: 20, radius: 8),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────── AppBottomNav ────────────────────────────────
+/// Consistent animated bottom navigation bar used on all main screens.
+class AppBottomNav extends StatelessWidget {
+  final int currentIndex;
+  final bool isDriver;
+
+  const AppBottomNav(
+      {super.key, required this.currentIndex, this.isDriver = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = isDriver
+        ? const [
+            _NavItem(Icons.home_rounded, Icons.home_outlined, 'Home'),
+            _NavItem(Icons.receipt_long_rounded, Icons.receipt_long_outlined,
+                'Bookings'),
+            _NavItem(Icons.account_balance_wallet_rounded,
+                Icons.account_balance_wallet_outlined, 'Wallet'),
+            _NavItem(Icons.person_rounded, Icons.person_outlined, 'Profile'),
+          ]
+        : const [
+            _NavItem(Icons.home_rounded, Icons.home_outlined, 'Home'),
+            _NavItem(Icons.add_circle_rounded,
+                Icons.add_circle_outline_rounded, 'Book'),
+            _NavItem(Icons.history_rounded, Icons.history, 'Trips'),
+            _NavItem(
+                Icons.person_rounded, Icons.person_outlined, 'Profile'),
+          ];
+
+    final routes = isDriver
+        ? const [
+            '/driver',
+            '/driver/requests',
+            '/driver/wallet',
+            '/driver/profile'
+          ]
+        : const [
+            '/customer',
+            '/customer/booking',
+            '/customer/history',
+            '/customer/profile'
+          ];
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border(
+            top: BorderSide(color: AppTheme.border.withOpacity(0.8))),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 16,
+              offset: const Offset(0, -4)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: List.generate(items.length, (i) {
+              final selected = i == currentIndex;
+              return GestureDetector(
+                onTap: () {
+                  if (!selected) context.go(routes[i]);
+                },
+                behavior: HitTestBehavior.opaque,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 220),
+                  curve: Curves.easeOutCubic,
+                  padding: EdgeInsets.symmetric(
+                      horizontal: selected ? 16 : 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: selected
+                        ? AppTheme.primary.withOpacity(0.1)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        selected
+                            ? items[i].activeIcon
+                            : items[i].icon,
+                        color: selected
+                            ? AppTheme.primary
+                            : AppTheme.textTertiary,
+                        size: 22,
+                      ),
+                      AnimatedSize(
+                        duration: const Duration(milliseconds: 220),
+                        child: selected
+                            ? Row(children: [
+                                const SizedBox(width: 6),
+                                Text(items[i].label,
+                                    style: const TextStyle(
+                                        color: AppTheme.primary,
+                                        fontWeight: FontWeight.w700,
+                                        fontSize: 13)),
+                              ])
+                            : const SizedBox.shrink(),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _NavItem {
+  final IconData activeIcon, icon;
+  final String label;
+  const _NavItem(this.activeIcon, this.icon, this.label);
+}
+
+// ─────────────────────────────── StatusBadge ─────────────────────────────────
+/// Color-coded booking status chip.
+class StatusBadge extends StatelessWidget {
+  final String text;
+  final StatusType type;
+
+  const StatusBadge({super.key, required this.text, required this.type});
+
+  factory StatusBadge.fromStatus(String status) {
+    switch (status) {
+      case 'completed':
+        return const StatusBadge(text: 'Completed', type: StatusType.success);
+      case 'cancelled':
+        return const StatusBadge(text: 'Cancelled', type: StatusType.error);
+      case 'started':
+      case 'ongoing':
+        return const StatusBadge(
+            text: 'In Progress', type: StatusType.info);
+      case 'arrived':
+        return const StatusBadge(
+            text: 'Driver Arrived', type: StatusType.warning);
+      case 'driver_assigned':
+        return const StatusBadge(
+            text: 'Driver Assigned', type: StatusType.info);
+      case 'open_for_bids':
+        return const StatusBadge(
+            text: 'Bids Open', type: StatusType.warning);
+      default:
+        return const StatusBadge(text: 'Pending', type: StatusType.neutral);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final Color bg, fg;
+    final IconData icon;
+    switch (type) {
+      case StatusType.success:
+        bg = AppTheme.successSoft;
+        fg = AppTheme.success;
+        icon = Icons.check_circle_rounded;
+        break;
+      case StatusType.error:
+        bg = AppTheme.errorSoft;
+        fg = AppTheme.error;
+        icon = Icons.cancel_rounded;
+        break;
+      case StatusType.warning:
+        bg = AppTheme.warningSoft;
+        fg = AppTheme.warning;
+        icon = Icons.schedule_rounded;
+        break;
+      case StatusType.info:
+        bg = AppTheme.infoSoft;
+        fg = AppTheme.info;
+        icon = Icons.directions_car_rounded;
+        break;
+      default:
+        bg = AppTheme.surfaceTint;
+        fg = AppTheme.textSecondary;
+        icon = Icons.radio_button_unchecked;
+    }
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 12, color: fg),
+          const SizedBox(width: 5),
+          Text(text,
+              style: TextStyle(
+                  color: fg,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700)),
+        ],
+      ),
+    );
+  }
+}
+
+enum StatusType { success, error, warning, info, neutral }
+
+// ─────────────────────────────── InfoRow ─────────────────────────────────────
+/// Icon + label + value row used inside detail cards.
+class InfoRow extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+  final Color? iconColor;
+
+  const InfoRow(
+      {super.key,
+      required this.icon,
+      required this.label,
+      required this.value,
+      this.iconColor});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = iconColor ?? AppTheme.primary;
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(9),
+            ),
+            child: Icon(icon, size: 15, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(label,
+                    style: const TextStyle(
+                        fontSize: 11.5,
+                        color: AppTheme.textTertiary,
+                        fontWeight: FontWeight.w500)),
+                const SizedBox(height: 2),
+                Text(value,
+                    style: const TextStyle(
+                        fontSize: 13.5,
+                        color: AppTheme.textPrimary,
+                        fontWeight: FontWeight.w600)),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────── Entrance ────────────────────────────────────
 class Entrance extends StatefulWidget {
   final Widget child;
   final int delayMs;
   final double offsetY;
 
-  const Entrance({
-    super.key,
-    required this.child,
-    this.delayMs = 0,
-    this.offsetY = 26,
-  });
+  const Entrance(
+      {super.key,
+      required this.child,
+      this.delayMs = 0,
+      this.offsetY = 26});
 
   @override
   State<Entrance> createState() => _EntranceState();
@@ -302,16 +635,12 @@ class _EntranceState extends State<Entrance>
   void initState() {
     super.initState();
     _c = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 550),
-    );
+        vsync: this, duration: const Duration(milliseconds: 550));
     _fade = CurvedAnimation(parent: _c, curve: Curves.easeOut);
     _slide = Tween<double>(begin: widget.offsetY, end: 0).animate(
-      CurvedAnimation(parent: _c, curve: Curves.easeOutCubic),
-    );
-    Future.delayed(Duration(milliseconds: widget.delayMs), () {
-      if (mounted) _c.forward();
-    });
+        CurvedAnimation(parent: _c, curve: Curves.easeOutCubic));
+    Future.delayed(Duration(milliseconds: widget.delayMs),
+        () { if (mounted) _c.forward(); });
   }
 
   @override
@@ -326,17 +655,15 @@ class _EntranceState extends State<Entrance>
       animation: _c,
       builder: (_, child) => Opacity(
         opacity: _fade.value,
-        child: Transform.translate(
-          offset: Offset(0, _slide.value),
-          child: child,
-        ),
+        child:
+            Transform.translate(offset: Offset(0, _slide.value), child: child),
       ),
       child: widget.child,
     );
   }
 }
 
-/// Premium empty state with icon + CTA.
+// ─────────────────────────────── PremiumEmpty ────────────────────────────────
 class PremiumEmpty extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -362,47 +689,35 @@ class PremiumEmpty extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 88,
-              height: 88,
+              width: 96,
+              height: 96,
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primary.withOpacity(0.14),
-                    AppTheme.primary.withOpacity(0.05),
-                  ],
-                ),
+                gradient: LinearGradient(colors: [
+                  AppTheme.primary.withOpacity(0.12),
+                  AppTheme.primary.withOpacity(0.04),
+                ]),
                 shape: BoxShape.circle,
               ),
               child: Icon(icon,
-                  size: 40, color: AppTheme.primary.withOpacity(0.7)),
+                  size: 44, color: AppTheme.primary.withOpacity(0.65)),
             ),
-            const SizedBox(height: 18),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-                color: AppTheme.textPrimary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                fontSize: 13.5,
-                color: AppTheme.textSecondary,
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
+            const SizedBox(height: 20),
+            Text(title,
+                style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppTheme.textPrimary),
+                textAlign: TextAlign.center),
+            const SizedBox(height: 8),
+            Text(subtitle,
+                style: const TextStyle(
+                    fontSize: 13.5,
+                    color: AppTheme.textSecondary,
+                    height: 1.55),
+                textAlign: TextAlign.center),
             if (ctaLabel != null) ...[
-              const SizedBox(height: 18),
-              PremiumButton(
-                label: ctaLabel!,
-                onPressed: onCta,
-                height: 48,
-              ),
+              const SizedBox(height: 22),
+              PremiumButton(label: ctaLabel!, onPressed: onCta, height: 50),
             ],
           ],
         ),
@@ -411,29 +726,26 @@ class PremiumEmpty extends StatelessWidget {
   }
 }
 
-/// Small pill badge.
+// ─────────────────────────────── Pill ────────────────────────────────────────
 class Pill extends StatelessWidget {
   final String text;
   final Color color;
   final Color bg;
   final IconData? icon;
 
-  const Pill({
-    super.key,
-    required this.text,
-    required this.color,
-    required this.bg,
-    this.icon,
-  });
+  const Pill(
+      {super.key,
+      required this.text,
+      required this.color,
+      required this.bg,
+      this.icon});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(20)),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -441,82 +753,91 @@ class Pill extends StatelessWidget {
             Icon(icon, size: 12, color: color),
             const SizedBox(width: 4),
           ],
-          Text(
-            text,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
+          Text(text,
+              style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: color)),
         ],
       ),
     );
   }
 }
 
-/// Section title row with optional action.
+// ─────────────────────────────── SectionTitle ────────────────────────────────
 class SectionTitle extends StatelessWidget {
   final String title;
   final String? action;
   final VoidCallback? onAction;
 
-  const SectionTitle({
-    super.key,
-    required this.title,
-    this.action,
-    this.onAction,
-  });
+  const SectionTitle(
+      {super.key, required this.title, this.action, this.onAction});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            letterSpacing: -0.2,
-            color: AppTheme.textPrimary,
-          ),
-        ),
+        Text(title,
+            style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.2,
+                color: AppTheme.textPrimary)),
         const Spacer(),
         if (action != null)
           GestureDetector(
             onTap: onAction,
-            child: Text(
-              action!,
-              style: const TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                color: AppTheme.primary,
-              ),
-            ),
+            child: Text(action!,
+                style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppTheme.primary)),
           ),
       ],
     );
   }
 }
 
-/// Wraps a home screen: Back navigates to the previous route when one exists;
-/// only at the true root does the first press show a hint and the second
-/// minimize the app. Never swallows Back while history exists, and never
-/// exits while a previous screen is available.
-///
-/// Implementation note: go_router's popRoute() short-circuits at the root of
-/// the stack and never consults PopScope there, so a PopScope-based guard can
-/// never fire on a real device. Instead this registers a WidgetsBindingObserver
-/// AFTER the Router's own back dispatcher: the router consumes every Back it
-/// can handle (previous route, dialog, bottom sheet); only the Back presses the
-/// router declines (genuine root) reach this observer.
+// ─────────────────────────────── DoubleTapToExit ─────────────────────────────
+
+// ─────────────────────────────────────── SkeletonDetailCard ─────────────────────────────────────────────
+/// Skeleton detail card shown while loading detail/profile screens.
+class SkeletonDetailCard extends StatelessWidget {
+  const SkeletonDetailCard({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppTheme.surface,
+        borderRadius: BorderRadius.circular(AppTheme.rLg),
+        border: Border.all(color: AppTheme.border.withOpacity(0.5)),
+        boxShadow: AppTheme.shadowSm,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: List.generate(4, (i) => Padding(
+          padding: const EdgeInsets.only(bottom: 14),
+          child: Row(children: [
+            ShimmerBox(width: 18, height: 18, radius: 9),
+            const SizedBox(width: 12),
+            ShimmerBox(width: 80, height: 13, radius: 6),
+            const SizedBox(width: 12),
+            ShimmerBox(width: 140 - i * 10.0, height: 13, radius: 6),
+          ]),
+        )),
+      ),
+    );
+  }
+}
 class DoubleTapToExit extends StatefulWidget {
   final Widget child;
   final String message;
   const DoubleTapToExit({
     super.key,
     required this.child,
-    this.message = 'Wapas back dabao app band karne ke liye',
+    this.message = 'Press back again to exit',
   });
 
   @override
@@ -540,16 +861,13 @@ class _DoubleTapToExitState extends State<DoubleTapToExit> {
     super.dispose();
   }
 
-  /// Runs only for Back presses the router could not handle (no previous
-  /// route, no open dialog/sheet). Returns true when consumed.
   Future<bool> _onRootBack() async {
     if (!mounted) return false;
-    // Safety net: if history somehow exists, don't touch it.
     if (GoRouter.of(context).canPop()) return false;
     final now = DateTime.now();
     if (_lastBack != null &&
         now.difference(_lastBack!) < const Duration(seconds: 2)) {
-      return false; // let the system minimize/exit the app
+      return false;
     }
     _lastBack = now;
     ScaffoldMessenger.of(context)
@@ -558,6 +876,9 @@ class _DoubleTapToExitState extends State<DoubleTapToExit> {
         content: Text(widget.message),
         duration: const Duration(seconds: 2),
         behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
       ));
     return true;
   }
@@ -566,7 +887,6 @@ class _DoubleTapToExitState extends State<DoubleTapToExit> {
   Widget build(BuildContext context) => widget.child;
 }
 
-/// Forwards unconsumed system-Back presses to [onBack].
 class _RootBackObserver extends WidgetsBindingObserver {
   final Future<bool> Function() onBack;
   _RootBackObserver(this.onBack);

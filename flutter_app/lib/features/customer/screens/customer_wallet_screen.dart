@@ -31,7 +31,7 @@ class CustomerWalletScreen extends StatelessWidget {
                     label: 'Book a Ride',
                     icon: Icons.add_rounded,
                     height: 50,
-                    onPressed: () => Nav.push(context, '/customer/booking'),
+                    onPressed: () => Nav.go(context, '/customer/booking'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -39,7 +39,7 @@ class CustomerWalletScreen extends StatelessWidget {
                   child: SizedBox(
                     height: 50,
                     child: OutlinedButton.icon(
-                      onPressed: () => Nav.push(context, '/customer/history'),
+                      onPressed: () => Nav.go(context, '/customer/history'),
                       icon: const Icon(Icons.history_rounded, size: 18),
                       label: const Text('My Trips'),
                       style: OutlinedButton.styleFrom(

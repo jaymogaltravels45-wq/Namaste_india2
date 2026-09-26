@@ -146,7 +146,7 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                 _navTile(Icons.emergency_outlined, 'Emergency SOS',
                     () => Nav.push(context, '/customer/sos')),
                 _navTile(Icons.local_offer_outlined, 'Offers',
-                    () => Nav.push(context, '/customer/offers')),
+                    () => Nav.go(context, '/customer/offers')),
                 _navTile(Icons.info_outline, 'About',
                     _showAbout),
                 const SizedBox(height: 20),

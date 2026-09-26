@@ -105,7 +105,7 @@ void main() {  setUpAll(() async {
     // Root par pehla back — hint, screen wahin.
     await tester.binding.handlePopRoute();
     await tester.pump();
-    expect(find.text("Wapas back dabao app band karne ke liye"),
+    expect(find.text("Press back again to exit"),
         findsOneWidget);
     expect(find.text("home-screen"), findsOneWidget);
 
