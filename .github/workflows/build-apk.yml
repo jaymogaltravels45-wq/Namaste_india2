@@ -11,6 +11,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write # release banane ke liye
     defaults:
       run:
         working-directory: flutter_app
@@ -42,6 +44,13 @@ jobs:
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: NamasteIndia-v1.0.0
+          name: NamasteIndia-v5.0.0-navfix
           path: flutter_app/build/app/outputs/flutter-apk/app-release.apk
           if-no-files-found: error
+
+      - name: Publish APK to GitHub Release (bina token download)
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-build-${{ github.run_number }}
+          name: "Namaste India APK — build ${{ github.run_number }}"
+          files: flutter_app/build/app/outputs/flutter-apk/app-release.apk
