@@ -5,6 +5,7 @@ import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
+import '../../../core/routes/nav.dart';
 
 class DriverBidDetailScreen extends StatefulWidget {
   final String bookingId;
@@ -80,7 +81,7 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
           content: Text("Booking accept ho gayi!"),
           backgroundColor: AppTheme.success,
         ));
-        context.go("/driver/my-booking/${widget.bookingId}");
+        Nav.push(context, "/driver/my-booking/${widget.bookingId}");
       } else if (res.statusCode == 403) {
         _showNegativeWalletDialog();
       } else {
@@ -117,7 +118,7 @@ class _DriverBidDetailScreenState extends State<DriverBidDetailScreen> {
           ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                context.go("/driver/add-money");
+                Nav.push(context, "/driver/add-money");
               },
               child: const Text("Add Money")),
         ],

@@ -1,11 +1,11 @@
 import "dart:convert";
 import "package:flutter/material.dart";
-import "package:go_router/go_router.dart";
 import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
 import "../../../core/widgets/premium.dart";
+import '../../../core/routes/nav.dart';
 
 class DriverWalletScreen extends StatefulWidget {
   const DriverWalletScreen({super.key});
@@ -210,7 +210,7 @@ class _DriverWalletScreenState extends State<DriverWalletScreen> {
                 ),
                 const SizedBox(height: 16),
                 GestureDetector(
-                  onTap: () => context.go("/driver/add-money"),
+                  onTap: () => Nav.push(context, "/driver/add-money"),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(

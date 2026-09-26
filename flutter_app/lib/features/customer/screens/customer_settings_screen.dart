@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../services/auth/auth_service.dart';
+import '../../../core/routes/nav.dart';
 
 class CustomerSettingsScreen extends StatefulWidget {
   const CustomerSettingsScreen({super.key});
@@ -141,11 +142,11 @@ class _CustomerSettingsScreenState extends State<CustomerSettingsScreen> {
                 const SizedBox(height: 16),
                 _sectionTitle('App'),
                 _navTile(Icons.help_outline, 'Help & Support',
-                    () => context.go('/customer/support')),
+                    () => Nav.push(context, '/customer/support')),
                 _navTile(Icons.emergency_outlined, 'Emergency SOS',
-                    () => context.go('/customer/sos')),
+                    () => Nav.push(context, '/customer/sos')),
                 _navTile(Icons.local_offer_outlined, 'Offers',
-                    () => context.go('/customer/offers')),
+                    () => Nav.push(context, '/customer/offers')),
                 _navTile(Icons.info_outline, 'About',
                     _showAbout),
                 const SizedBox(height: 20),

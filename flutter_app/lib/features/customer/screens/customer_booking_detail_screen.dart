@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/routes/nav.dart';
 
 class CustomerBookingDetailScreen extends StatefulWidget {
   final String bookingId;
@@ -186,7 +186,7 @@ class _CustomerBookingDetailScreenState
           if ((b['rideOtp'] ?? b['otp']) != null && status == 'arrived') ...[
             const SizedBox(height: 12),
             InkWell(
-              onTap: () => context.go('/ride-otp/${widget.bookingId}'),
+              onTap: () => Nav.push(context, '/ride-otp/${widget.bookingId}'),
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -216,7 +216,7 @@ class _CustomerBookingDetailScreenState
               height: 54,
               child: ElevatedButton(
                 onPressed: () =>
-                    context.go('/payment/${widget.bookingId}'),
+                    Nav.push(context, '/payment/${widget.bookingId}'),
                 child: const Text('Pay Now',
                     style:
                         TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
@@ -228,7 +228,7 @@ class _CustomerBookingDetailScreenState
               height: 54,
               child: OutlinedButton.icon(
                 onPressed: () =>
-                    context.go('/rating/${widget.bookingId}'),
+                    Nav.push(context, '/rating/${widget.bookingId}'),
                 icon: const Icon(Icons.star),
                 label: const Text('Ride ko rate karo'),
                 style: OutlinedButton.styleFrom(

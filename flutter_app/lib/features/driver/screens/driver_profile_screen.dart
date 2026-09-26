@@ -5,6 +5,7 @@ import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
+import '../../../core/routes/nav.dart';
 
 class DriverProfileScreen extends StatefulWidget {
   const DriverProfileScreen({super.key});
@@ -305,16 +306,16 @@ class _DriverProfileScreenState extends State<DriverProfileScreen> {
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         child: Column(children: [
           _menuTile(Icons.account_balance_wallet_outlined, "Wallet",
-              () => context.go("/driver/wallet")),
+              () => Nav.push(context, "/driver/wallet")),
           const Divider(height: 1, indent: 56),
           _menuTile(Icons.card_membership_outlined, "Subscription",
-              () => context.go("/driver/subscription")),
+              () => Nav.push(context, "/driver/subscription")),
           const Divider(height: 1, indent: 56),
           _menuTile(Icons.badge_outlined, "KYC Documents",
-              () => context.go("/driver/kyc")),
+              () => Nav.push(context, "/driver/kyc")),
           const Divider(height: 1, indent: 56),
           _menuTile(Icons.settings_outlined, "Settings",
-              () => context.go("/driver/settings")),
+              () => Nav.push(context, "/driver/settings")),
         ]),
       );
 

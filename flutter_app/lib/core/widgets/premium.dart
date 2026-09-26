@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import '../theme/app_theme.dart';
 
 /// Premium gradient button with press-scale animation.
@@ -498,8 +499,17 @@ class SectionTitle extends StatelessWidget {
   }
 }
 
-/// Wraps a home screen: first back-press shows a hint, second exits.
-/// Fixes "back dabate hi app band ho jata hai".
+/// Wraps a home screen: Back navigates to the previous route when one exists;
+/// only at the true root does the first press show a hint and the second
+/// minimize the app. Never swallows Back while history exists, and never
+/// exits while a previous screen is available.
+///
+/// Implementation note: go_router's popRoute() short-circuits at the root of
+/// the stack and never consults PopScope there, so a PopScope-based guard can
+/// never fire on a real device. Instead this registers a WidgetsBindingObserver
+/// AFTER the Router's own back dispatcher: the router consumes every Back it
+/// can handle (previous route, dialog, bottom sheet); only the Back presses the
+/// router declines (genuine root) reach this observer.
 class DoubleTapToExit extends StatefulWidget {
   final Widget child;
   final String message;
@@ -515,29 +525,52 @@ class DoubleTapToExit extends StatefulWidget {
 
 class _DoubleTapToExitState extends State<DoubleTapToExit> {
   DateTime? _lastBack;
+  late final _RootBackObserver _observer;
 
   @override
-  Widget build(BuildContext context) {
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop) return;
-        final now = DateTime.now();
-        if (_lastBack != null &&
-            now.difference(_lastBack!) < const Duration(seconds: 2)) {
-          Navigator.of(context).pop();
-          return;
-        }
-        _lastBack = now;
-        ScaffoldMessenger.of(context)
-          ..hideCurrentSnackBar()
-          ..showSnackBar(SnackBar(
-            content: Text(widget.message),
-            duration: const Duration(seconds: 2),
-            behavior: SnackBarBehavior.floating,
-          ));
-      },
-      child: widget.child,
-    );
+  void initState() {
+    super.initState();
+    _observer = _RootBackObserver(_onRootBack);
+    WidgetsBinding.instance.addObserver(_observer);
   }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(_observer);
+    super.dispose();
+  }
+
+  /// Runs only for Back presses the router could not handle (no previous
+  /// route, no open dialog/sheet). Returns true when consumed.
+  Future<bool> _onRootBack() async {
+    if (!mounted) return false;
+    // Safety net: if history somehow exists, don't touch it.
+    if (GoRouter.of(context).canPop()) return false;
+    final now = DateTime.now();
+    if (_lastBack != null &&
+        now.difference(_lastBack!) < const Duration(seconds: 2)) {
+      return false; // let the system minimize/exit the app
+    }
+    _lastBack = now;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(
+        content: Text(widget.message),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+      ));
+    return true;
+  }
+
+  @override
+  Widget build(BuildContext context) => widget.child;
+}
+
+/// Forwards unconsumed system-Back presses to [onBack].
+class _RootBackObserver extends WidgetsBindingObserver {
+  final Future<bool> Function() onBack;
+  _RootBackObserver(this.onBack);
+
+  @override
+  Future<bool> didPopRoute() => onBack();
 }

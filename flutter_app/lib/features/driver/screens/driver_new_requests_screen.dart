@@ -1,10 +1,10 @@
 import "dart:convert";
 import "package:flutter/material.dart";
-import "package:go_router/go_router.dart";
 import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
+import '../../../core/routes/nav.dart';
 
 class DriverNewRequestsScreen extends StatefulWidget {
   const DriverNewRequestsScreen({super.key});
@@ -71,7 +71,7 @@ class _DriverNewRequestsScreenState extends State<DriverNewRequestsScreen> {
           content: Text("Booking accept ho gayi!"),
           backgroundColor: AppTheme.success,
         ));
-        context.go("/driver/my-booking/$id");
+        Nav.push(context, "/driver/my-booking/$id");
       } else if (res.statusCode == 403) {
         _showNegativeWalletDialog();
       } else {
@@ -108,7 +108,7 @@ class _DriverNewRequestsScreenState extends State<DriverNewRequestsScreen> {
           ElevatedButton(
               onPressed: () {
                 Navigator.of(ctx).pop();
-                context.go("/driver/add-money");
+                Nav.push(context, "/driver/add-money");
               },
               child: const Text("Add Money")),
         ],
@@ -190,7 +190,7 @@ class _DriverNewRequestsScreenState extends State<DriverNewRequestsScreen> {
         itemBuilder: (_, i) => _RequestCard(
           data: _bookings[i],
           accepting: _accepting.contains(_idOf(_bookings[i])),
-          onTap: () => context.go("/driver/bid/${_idOf(_bookings[i])}"),
+          onTap: () => Nav.push(context, "/driver/bid/${_idOf(_bookings[i])}"),
           onAccept: () => _accept(_idOf(_bookings[i])),
           onDecline: () => _decline(i),
         ),

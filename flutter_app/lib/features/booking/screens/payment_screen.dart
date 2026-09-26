@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/routes/nav.dart';
 
 class PaymentScreen extends StatefulWidget {
   final String bookingId;
@@ -95,7 +95,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (!mounted) return;
       if (res.statusCode == 200 && body['success'] == true) {
         _snack('Payment ho gaya! Shukriya.');
-        context.go('/rating/${widget.bookingId}');
+        Nav.push(context, '/rating/${widget.bookingId}');
       } else {
         _snack(body['message']?.toString() ?? 'Payment fail ho gaya',
             error: true);

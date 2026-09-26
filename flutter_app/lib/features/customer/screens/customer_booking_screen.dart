@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../booking/widgets/map_location_picker.dart';
+import '../../../core/routes/nav.dart';
 
 class CustomerBookingScreen extends StatefulWidget {
   final String? type;
@@ -247,7 +247,7 @@ class _CustomerBookingScreenState extends State<CustomerBookingScreen> {
         final booking = body['booking'] as Map<String, dynamic>;
         final id = booking['_id']?.toString() ?? '';
         _snack('Booking ho gayi! Driver dhoondh rahe hain...');
-        context.go('/customer/booking/$id');
+        Nav.push(context, '/customer/booking/$id');
       } else {
         _snack(body['message']?.toString() ?? 'Booking fail ho gayi',
             error: true);

@@ -11,9 +11,20 @@ import "package:namaste_india/features/customer/screens/available_cars_screen.da
 import "package:namaste_india/features/customer/screens/customer_notifications_screen.dart";
 import "package:namaste_india/features/driver/screens/driver_notifications_screen.dart";
 
+/// Probe observer: system-Back chain ke aakhir tak pahuncha ya DoubleTapToExit
+/// ne consume kar liya — ye batata hai.
+class _ExitProbe extends WidgetsBindingObserver {
+  final List<String> calls;
+  _ExitProbe(this.calls);
+  @override
+  Future<bool> didPopRoute() async {
+    calls.add('pop');
+    return false;
+  }
+}
+
 /// Acceptance suite: back button, routes, map, login-adjacent screens.
-void main() {
-  setUpAll(() async {
+void main() {  setUpAll(() async {
     // Dummy Supabase taaki auth header code crash na kare (koi network nahi).
     SharedPreferences.setMockInitialValues({});
     await Supabase.initialize(
@@ -60,28 +71,53 @@ void main() {
     }
   });
 
-  testWidgets("back button: pehli baar hint, doosri baar exit",
+  testWidgets("back button: router ke saath double-tap-to-exit",
       (tester) async {
-    await tester.pumpWidget(
-      const MaterialApp(
-        home: DoubleTapToExit(
-          child: Scaffold(body: Text("home-screen")),
+    // Production jaisa setup: go_router ke andar guarded home.
+    final router = GoRouter(
+      initialLocation: '/home',
+      routes: [
+        GoRoute(
+          path: '/home',
+          builder: (_, __) => const DoubleTapToExit(
+            child: Scaffold(body: Text("home-screen")),
+          ),
         ),
-      ),
+        GoRoute(
+          path: '/other',
+          builder: (_, __) => const Scaffold(body: Text("other-screen")),
+        ),
+      ],
     );
+    await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+    await tester.pumpAndSettle();
     expect(find.text("home-screen"), findsOneWidget);
 
-    // Pehla back — snackbar, screen wahin
+    // History maujood ho to Back seedha pichhli screen par jaaye, hint nahi.
+    router.push('/other');
+    await tester.pumpAndSettle();
+    expect(find.text("other-screen"), findsOneWidget);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.text("home-screen"), findsOneWidget);
+    expect(find.byType(SnackBar), findsNothing);
+
+    // Root par pehla back — hint, screen wahin.
     await tester.binding.handlePopRoute();
     await tester.pump();
     expect(find.text("Wapas back dabao app band karne ke liye"),
         findsOneWidget);
     expect(find.text("home-screen"), findsOneWidget);
 
-    // Doosra back 2 second ke andar — exit (pop)
+    // Root par doosra back (2s ke andar) — observer chain ke aakhir tak
+    // pahunche, yaani system app minimize/exit karega.
+    final probeCalls = <String>[];
+    final probe = _ExitProbe(probeCalls);
+    WidgetsBinding.instance.addObserver(probe);
     await tester.binding.handlePopRoute();
-    await tester.pumpAndSettle();
-    expect(find.text("home-screen"), findsNothing);
+    await tester.pump();
+    expect(probeCalls, isNotEmpty);
+    WidgetsBinding.instance.removeObserver(probe);
   });
 
   testWidgets("OSM map picker crash kiye bina khulta hai", (tester) async {

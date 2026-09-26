@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:go_router/go_router.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/routes/nav.dart';
 
 class RideOtpScreen extends StatefulWidget {
   final String bookingId;
@@ -255,7 +255,7 @@ class _RideOtpScreenState extends State<RideOtpScreen> {
             height: 54,
             child: OutlinedButton.icon(
               onPressed: () =>
-                  context.go('/customer/booking/${widget.bookingId}'),
+                  Nav.push(context, '/customer/booking/${widget.bookingId}'),
               icon: const Icon(Icons.receipt_long),
               label: const Text('Booking Details Dekho'),
               style: OutlinedButton.styleFrom(

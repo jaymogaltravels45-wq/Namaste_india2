@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/premium.dart';
+import '../../../core/routes/nav.dart';
 
 class CustomerWalletScreen extends StatelessWidget {
   const CustomerWalletScreen({super.key});
@@ -31,7 +31,7 @@ class CustomerWalletScreen extends StatelessWidget {
                     label: 'Book a Ride',
                     icon: Icons.add_rounded,
                     height: 50,
-                    onPressed: () => context.go('/customer/booking'),
+                    onPressed: () => Nav.push(context, '/customer/booking'),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -39,7 +39,7 @@ class CustomerWalletScreen extends StatelessWidget {
                   child: SizedBox(
                     height: 50,
                     child: OutlinedButton.icon(
-                      onPressed: () => context.go('/customer/history'),
+                      onPressed: () => Nav.push(context, '/customer/history'),
                       icon: const Icon(Icons.history_rounded, size: 18),
                       label: const Text('Meri Trips'),
                       style: OutlinedButton.styleFrom(

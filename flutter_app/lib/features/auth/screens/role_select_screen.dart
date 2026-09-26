@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/premium.dart';
+import '../../../core/routes/nav.dart';
 
 class RoleSelectScreen extends StatelessWidget {
   const RoleSelectScreen({super.key});
@@ -62,7 +63,7 @@ class RoleSelectScreen extends StatelessWidget {
                   gradient: AppTheme.blueGradient,
                   shadow: AppTheme.shadowBlue,
                   onTap: () =>
-                      context.go('/login', extra: {'role': 'customer'}),
+                      Nav.push(context, '/login', extra: {'role': 'customer'}),
                 ),
               ),
               const SizedBox(height: 14),
@@ -82,7 +83,7 @@ class RoleSelectScreen extends StatelessWidget {
                     ),
                   ],
                   onTap: () =>
-                      context.go('/login', extra: {'role': 'driver'}),
+                      Nav.push(context, '/login', extra: {'role': 'driver'}),
                 ),
               ),
               const SizedBox(height: 14),
@@ -105,7 +106,7 @@ class RoleSelectScreen extends StatelessWidget {
                       offset: const Offset(0, 8),
                     ),
                   ],
-                  onTap: () => context.go('/admin'),
+                  onTap: () => Nav.push(context, '/admin'),
                 ),
               ),
               const Spacer(),

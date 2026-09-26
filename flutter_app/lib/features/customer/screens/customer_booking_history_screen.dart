@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/config/app_config.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/routes/nav.dart';
 
 class CustomerBookingHistoryScreen extends StatefulWidget {
   const CustomerBookingHistoryScreen({super.key});
@@ -161,7 +162,7 @@ class _CustomerBookingHistoryScreenState
                   style: TextStyle(color: AppTheme.textSecondary)),
               const SizedBox(height: 16),
               ElevatedButton(
-                onPressed: () => context.go('/customer/booking'),
+                onPressed: () => Nav.push(context, '/customer/booking'),
                 child: const Text('Book a Ride'),
               ),
             ],
@@ -182,7 +183,7 @@ class _CustomerBookingHistoryScreenState
       shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14)),
       child: InkWell(
-        onTap: () => context.go('/customer/booking/$id'),
+        onTap: () => Nav.push(context, '/customer/booking/$id'),
         borderRadius: BorderRadius.circular(14),
         child: Padding(
           padding: const EdgeInsets.all(14),

@@ -1,6 +1,5 @@
 import "dart:convert";
 import "package:flutter/material.dart";
-import "package:go_router/go_router.dart";
 import "package:flutter_map/flutter_map.dart";
 import "package:latlong2/latlong.dart";
 import "package:geolocator/geolocator.dart";
@@ -9,6 +8,7 @@ import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
 import "../../../core/widgets/premium.dart";
+import '../../../core/routes/nav.dart';
 
 // KEY RULE: Negative balance -> block bookings
 // TIME BUG FIX: Always display pickup_time from server
@@ -203,7 +203,7 @@ class _State extends State<DriverHomeScreen> {
       setState(() => _acceptingId = null);
       if (res.statusCode == 200) {
         _snack('Booking accept ho gayi!');
-        context.go("/driver/my-booking/$id");
+        Nav.push(context, "/driver/my-booking/$id");
       } else {
         _snack(_msgOf(res, 'Accept nahi ho payi'), error: true);
         _loadData(); // list refresh — shayad kisi aur ne le li
@@ -261,7 +261,7 @@ class _State extends State<DriverHomeScreen> {
         subtitle:
             'Requests pane se pehle apni gaadi aur license ki details poori karo.',
         ctaLabel: 'Registration Karo',
-        onCta: () => context.go('/driver/kyc'),
+        onCta: () => Nav.push(context, '/driver/kyc'),
       );
     }
     if (_error == 'load_failed') {
@@ -359,7 +359,7 @@ class _State extends State<DriverHomeScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => ctx.go("/driver/notifications"),
+                          onTap: () => Nav.push(ctx, "/driver/notifications"),
                           child: Container(
                             padding: const EdgeInsets.all(9),
                             decoration: BoxDecoration(
@@ -378,7 +378,7 @@ class _State extends State<DriverHomeScreen> {
                         ),
                         const SizedBox(width: 10),
                         GestureDetector(
-                          onTap: () => ctx.go("/driver/wallet"),
+                          onTap: () => Nav.push(ctx, "/driver/wallet"),
                           child: Container(
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 12, vertical: 8),
@@ -595,7 +595,7 @@ class _State extends State<DriverHomeScreen> {
               ),
             ),
             GestureDetector(
-              onTap: () => context.go("/driver/add-money"),
+              onTap: () => Nav.push(context, "/driver/add-money"),
               child: Container(
                 padding: const EdgeInsets.symmetric(
                     horizontal: 12, vertical: 7),
@@ -647,7 +647,7 @@ class _State extends State<DriverHomeScreen> {
       busy: accepting,
       onAccept: () {
         if (isBidding) {
-          context.go("/driver/bid/$id");
+          Nav.push(context, "/driver/bid/$id");
         } else {
           _acceptBooking(id);
         }

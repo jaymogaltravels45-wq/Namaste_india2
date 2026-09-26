@@ -4,6 +4,7 @@ import "package:go_router/go_router.dart";
 import "package:http/http.dart" as http;
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
+import '../../../core/routes/nav.dart';
 
 /// P23 (Travel edition) — Available Cars. Online verified drivers, live rates.
 class AvailableCarsScreen extends StatefulWidget {
@@ -352,7 +353,7 @@ class _AvailableCarsScreenState extends State<AvailableCarsScreen> {
           ),
           const SizedBox(width: 8),
           ElevatedButton(
-            onPressed: () => context.go('/customer/booking',
+            onPressed: () => Nav.push(context, '/customer/booking',
                 extra: {'type': 'outstation', 'vehicleType': vt}),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.gold,

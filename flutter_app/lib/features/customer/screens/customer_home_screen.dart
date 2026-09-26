@@ -3,6 +3,7 @@ import "package:go_router/go_router.dart";
 import "../../../core/l10n/app_strings.dart";
 import "../../../core/theme/app_theme.dart";
 import "../../../core/widgets/premium.dart";
+import '../../../core/routes/nav.dart';
 
 /// 2026-style customer home: 3D tilt trip cards, staggered entrance,
 /// glowing gradients and a premium hero header.
@@ -113,10 +114,10 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.3)),
                             const Spacer(),
-                            _iconBtn(Icons.notifications_outlined, () => ctx.go("/customer/notifications")),
+                            _iconBtn(Icons.notifications_outlined, () => Nav.push(ctx, "/customer/notifications")),
                             const SizedBox(width: 8),
                             _iconBtn(Icons.wallet_outlined,
-                                () => ctx.go("/customer/wallet")),
+                                () => Nav.push(ctx, "/customer/wallet")),
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -131,7 +132,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                                 color: Colors.white70, fontSize: 13)),
                         const SizedBox(height: 12),
                         GestureDetector(
-                          onTap: () => ctx.go("/customer/booking",
+                          onTap: () => Nav.push(ctx, "/customer/booking",
                               extra: {"type": "outstation"}),
                           child: Container(
                             decoration: BoxDecoration(
@@ -231,7 +232,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                   position: _slide(i),
                   child: _TiltCard(
                     glow: k.colors[0],
-                    onTap: () => ctx.go("/customer/booking",
+                    onTap: () => Nav.push(ctx, "/customer/booking",
                         extra: {"type": k.type}),
                     child: Container(
                       decoration: BoxDecoration(
@@ -314,7 +315,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
             child: SlideTransition(
               position: _slide(3),
               child: GestureDetector(
-                onTap: () => ctx.go("/customer/cars"),
+                onTap: () => Nav.push(ctx, "/customer/cars"),
                 child: Container(
                   padding: const EdgeInsets.all(18),
                   decoration: BoxDecoration(
@@ -407,7 +408,7 @@ class _CustomerHomeScreenState extends State<CustomerHomeScreen>
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () => ctx.go("/customer/booking",
+                      onPressed: () => Nav.push(ctx, "/customer/booking",
                           extra: {"type": "outstation"}),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,

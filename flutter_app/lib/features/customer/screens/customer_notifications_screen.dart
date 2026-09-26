@@ -5,6 +5,7 @@ import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
+import '../../../core/routes/nav.dart';
 
 /// P14 (Travel edition) — Notifications. Built from the customer's bookings.
 class CustomerNotificationsScreen extends StatefulWidget {
@@ -251,7 +252,7 @@ class _CustomerNotificationsScreenState
           return GestureDetector(
             onTap: n.bookingId == null
                 ? null
-                : () => context.go('/customer/booking/${n.bookingId}'),
+                : () => Nav.push(context, '/customer/booking/${n.bookingId}'),
             child: Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 13),

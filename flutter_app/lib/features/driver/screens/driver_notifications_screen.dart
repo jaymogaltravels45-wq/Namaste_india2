@@ -5,6 +5,7 @@ import "package:http/http.dart" as http;
 import "package:supabase_flutter/supabase_flutter.dart";
 import "../../../core/config/app_config.dart";
 import "../../../core/theme/app_theme.dart";
+import '../../../core/routes/nav.dart';
 
 /// P27 (Travel edition) — Driver notifications with All / Bids / Payouts tabs.
 class DriverNotificationsScreen extends StatefulWidget {
@@ -307,7 +308,7 @@ class _DriverNotificationsScreenState
         itemBuilder: (_, i) {
           final n = list[i];
           return GestureDetector(
-            onTap: n.route == null ? null : () => context.go(n.route!),
+            onTap: n.route == null ? null : () => Nav.push(context, n.route!),
             child: Container(
               padding: const EdgeInsets.symmetric(
                   horizontal: 14, vertical: 13),

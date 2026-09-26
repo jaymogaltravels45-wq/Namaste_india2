@@ -5,6 +5,7 @@ import '../../../services/auth/msg91_service.dart';
 import '../../../services/auth/auth_service.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/widgets/premium.dart';
+import '../../../core/routes/nav.dart';
 
 class OtpScreen extends StatefulWidget {
   final String phone;
@@ -93,7 +94,7 @@ class _OtpScreenState extends State<OtpScreen>
     final role = user?['role'] as String? ?? widget.role;
 
     if (isNewUser) {
-      context.go('/setup');
+      Nav.push(context, '/setup');
     } else {
       _navigateByRole(role);
     }
